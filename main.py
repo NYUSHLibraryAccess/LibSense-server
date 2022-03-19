@@ -6,7 +6,7 @@
 
 import uvicorn
 from fastapi import FastAPI
-from v1 import api
+from api import api
 
 app = FastAPI(title="NYU Shanghai Library WMS")
 
