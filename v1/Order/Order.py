@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from datetime import date
 from typing import Optional
 
-router = APIRouter(prefix="/orders", tags=["Orders"])
+router = APIRouter(prefix="/orders", tags=["Order"])
 
 
 @router.get("/general-order", response_model=PageableOrdersSet)

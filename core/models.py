@@ -1,5 +1,6 @@
 
 from datetime import date
+from enum import Enum
 from typing import List, Union, Optional
 from pydantic import BaseModel
 from humps import camelize
@@ -29,13 +30,20 @@ class Message(CamelModel):
 
 class TimelineNote(CamelModel):
     date: date
+    net_id: str
     message: str
+
+
+class EnumRole(str, Enum):
+    admin = 'admin'
+    user = 'user'
 
 
 class User(CamelModel):
     net_id: str
     name: str
-    role = 'user'
+    role: EnumRole
+    email: str
     messages: Optional[int]
 
 
@@ -75,3 +83,9 @@ class CDLOrder(Order):
 
 class PageableCDLOrdersSet(PageableResultSet):
     result: List[CDLOrder]
+
+
+class Vendor(CamelModel):
+    name: str
+    id: str
+    notify_date: str
