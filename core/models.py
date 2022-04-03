@@ -1,8 +1,7 @@
-
 from datetime import date
 from enum import Enum
 from typing import List, Union, Optional
-from pydantic import BaseModel
+from pydantic import Field, BaseModel
 from humps import camelize
 
 
@@ -20,6 +19,9 @@ class PageableResultSet(CamelModel):
     page_index: int = 0
     page_limit: int = 0
     total_pages: int = 0
+
+    class Config:
+        orm_mode = True
 
 
 class Message(CamelModel):
@@ -48,22 +50,23 @@ class User(CamelModel):
 
 
 class Order(CamelModel):
-    uuid: str
+    id: int
     barcode: str
     title: str
-    order_type: int
+    order_type: Optional[int]
     order_number: str
-    order_create_date: date
-    order_arrival_date: date
-    ips_code: str
-    process_status: Optional[str]
-    process_status_date: date
-    ny_note: Optional[str]
-    library_note: Optional[List[TimelineNote]]
-    override_date: Union[date, str]
+    created_date: date
+    arrival_date: date
+    ips_code: Optional[str]
+    ips: Optional[str]
+    ips_date: date
+    library_note: Optional[str]
+    tracking_note: Optional[List[TimelineNote]]
+    override_date: Optional[Union[date, str]]
 
     class Config:
-        orm_mode: True
+        orm_mode = True
+        allow_populate_by_alias = True
 
 
 class PageableOrdersSet(PageableResultSet):
