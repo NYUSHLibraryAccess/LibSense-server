@@ -32,3 +32,17 @@ class Order(Base):
     vendor_code = Column(String)
     library_note = Column(String)
     material_format = Column(String)
+
+    tracking_note = relationship("TrackingNote", back_populates="book")
+
+
+class TrackingNote(Base):
+    __tablename__ = "notes"
+    id = Column(Integer, primary_key=True, index=True, unique=True)
+    book_id = Column(Integer, ForeignKey("nyc_orders.id"))
+    content = Column(String)
+    taken_by = Column(String)
+    date = Column(DateTime)
+
+    book = relationship("Order", back_populates="tracking_note")
+

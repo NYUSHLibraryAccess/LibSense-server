@@ -1,4 +1,4 @@
-from core.models import User
+from core.schema import User
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/user", tags=["Users"])

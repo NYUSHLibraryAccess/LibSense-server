@@ -1,4 +1,4 @@
-from core.models import Vendor
+from core.schema import Vendor
 from typing import List, Optional
 from fastapi import APIRouter
 

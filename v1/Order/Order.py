@@ -1,9 +1,9 @@
-from core.models import PageableOrdersSet, PageableCDLOrdersSet, TimelineNote, Order, CDLOrder
+from core.schema import *
 from fastapi import Depends, HTTPException, APIRouter
 from datetime import date
 from typing import Optional
 from sqlalchemy.orm import Session
-from core.database import crud, schema
+from core.database import crud, model
 from core.database.database import SessionLocal, engine
 
 router = APIRouter(prefix="/orders", tags=["Order"])
@@ -19,7 +19,7 @@ def get_db():
 
 @router.get("/all-orders", response_model=PageableOrdersSet)
 def get_all_order(page_index: Optional[int] = None, page_size: Optional[int] = None,
-                        db: Session = Depends(get_db)):
+                  db: Session = Depends(get_db)):
     result_set, total_records = crud.get_all_orders(db, page_index, page_size)
     pageable_set = {
         'page_index': page_index,
@@ -28,6 +28,11 @@ def get_all_order(page_index: Optional[int] = None, page_size: Optional[int] = N
         'result': result_set
     }
     return PageableOrdersSet(**pageable_set)
+
+
+@router.get("/all-orders/detail", response_model=OrderDetail)
+def get_order_detail(order_id: int, db: Session = Depends(get_db)):
+    return crud.get_order_detail(db, order_id)
 
 
 @router.get("/cdl-order", response_model=PageableCDLOrdersSet, tags=["CDL Order"])

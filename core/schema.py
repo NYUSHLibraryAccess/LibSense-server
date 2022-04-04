@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 from typing import List, Union, Optional
 from pydantic import Field, BaseModel
@@ -31,9 +31,12 @@ class Message(CamelModel):
 
 
 class TimelineNote(CamelModel):
-    date: date
-    net_id: str
-    message: str
+    date: datetime
+    taken_by: str
+    content: str
+
+    class Config:
+        orm_mode = True
 
 
 class EnumRole(str, Enum):
@@ -53,13 +56,14 @@ class Order(CamelModel):
     id: int
     barcode: str
     title: str
-    order_type: Optional[int]
+    order_type: Optional[str]
     order_number: str
     created_date: date
     arrival_date: date
     ips_code: Optional[str]
     ips: Optional[str]
     ips_date: date
+    vendor_code: str
     library_note: Optional[str]
     tracking_note: Optional[List[TimelineNote]]
     override_date: Optional[Union[date, str]]
@@ -67,6 +71,22 @@ class Order(CamelModel):
     class Config:
         orm_mode = True
         allow_populate_by_alias = True
+
+
+class OrderDetail(Order):
+    bsn: str
+    arrival_status: Optional[str]
+    arrival_operator: Optional[str]
+    items_created: Optional[str]
+    ips_update_date: Optional[date]
+    ips_code_operator: Optional[str]
+    update_date: date
+    sublibrary: str
+    total_price: float
+    complete: str
+    order_status_update_date: date
+    invoice_status: str
+    material_format: Optional[str]
 
 
 class PageableOrdersSet(PageableResultSet):
