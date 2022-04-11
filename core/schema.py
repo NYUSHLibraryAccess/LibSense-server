@@ -31,6 +31,7 @@ class Message(CamelModel):
 
 
 class TimelineNote(CamelModel):
+    book_id: int
     date: datetime
     taken_by: str
     content: str

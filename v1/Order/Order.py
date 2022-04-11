@@ -1,5 +1,5 @@
 from core.schema import *
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Body, Form
 from datetime import date
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -50,6 +50,15 @@ async def update_cdl_order(net_id: str, cdl_order: CDLOrder):
     return True
 
 
-@router.patch("/add-note")
-async def add_note(net_id: str, uuid: str, note: TimelineNote):
-    return True
+@router.post("/add-note")
+def add_note(net_id: str = Form(...),
+             book_id: str = Form(...),
+             content: str = Form(...),
+             db: Session = Depends(get_db)):
+    note = TimelineNote(
+        book_id=book_id,
+        date=datetime.now(),
+        taken_by=net_id,
+        content=content,
+    )
+    return crud.add_tracking_note(db, note)
