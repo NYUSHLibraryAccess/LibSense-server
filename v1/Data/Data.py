@@ -42,10 +42,10 @@ async def upload_file(
         msg = f"Successfully updated database with {file.filename}."
         # background_tasks.add_task(Data.data_ingestion, db, output_file)
         Data.data_ingestion(db, output_file)
-    except:
-        msg = "There was an error uploading your file."
-        return HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
+    except BaseException as e:
+        print(e)
+        raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail="There was an error processing your file",
                     )
 
