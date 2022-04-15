@@ -39,9 +39,14 @@ async def upload_file(
                         detail="Too large",
                     )
                 await out_file.write(content)  # async write chunk
-        msg = f"Successfully uploaded {file.filename} for processing"
-        background_tasks.add_task(Data.data_ingestion, db, output_file)
-    except IOError:
-        msg = "There was an error uploading your file"
+        msg = f"Successfully updated database with {file.filename}."
+        # background_tasks.add_task(Data.data_ingestion, db, output_file)
+        Data.data_ingestion(db, output_file)
+    except:
+        msg = "There was an error uploading your file."
+        return HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="There was an error processing your file",
+                    )
 
     return {"message": msg}
