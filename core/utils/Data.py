@@ -3,9 +3,12 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import date
 from sqlalchemy.orm import Session
+from loguru import logger
 
 from ..database.model import *
 from ..database.database import engine
+
+pd.options.mode.chained_assignment = None
 
 col_mapping = {
     'BSN': 'bsn',
@@ -70,6 +73,7 @@ def prepare_for_db(df):
 
 
 def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
+    logger.info("DATA INGESTION STARTED")
     cnx = engine.connect()
     prev = pd.read_sql_table("nyc_orders", cnx)
     prev = prev.astype(str)
@@ -188,7 +192,7 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
     check_curr = prepare_for_db(check_curr)
     to_insert = prepare_for_db(to_insert)
 
-    print(to_del.shape, to_insert.shape)
+    logger.info("TO_DEL: %s, TO_INSERT: %s" % (str(to_del.shape), str(to_insert.shape)))
 
     for idx, row in tqdm(check_curr.iterrows()):
         row_dict = row.to_dict()
@@ -196,20 +200,20 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
         del row_dict['id']
         db.query(Order).filter(Order.id == this_id).update(dict_mapping(row_dict, col_mapping))
 
-    print("UPDATING PHASE COMPLETED")
+    logger.info("UPDATING PHASE COMPLETED")
 
     for idx, row in tqdm(to_del.iterrows()):
         db.query(Order).filter(Order.id == row['id']).delete()
 
-    print("DELETING PHASE COMPLETED")
+    logger.info("DELETING PHASE COMPLETED")
 
     for idx, row in tqdm(to_insert.iterrows()):
         row_dict = dict_mapping(row.to_dict(), col_mapping)
         db.add(Order(**row_dict))
 
-    print("INSERTING PHASE COMPLETED")
+    logger.info("INSERTING PHASE COMPLETED")
 
     db.commit()
-    print("COMMIT COMPLETED")
+    logger.info("COMMIT COMPLETED")
 
     return True
