@@ -66,9 +66,7 @@ def strf_date(x):
 
 def prepare_for_db(df):
     df = df.fillna(np.nan).replace([np.nan], [None])
-    for row in date_rows:
-        df[row] = df[row].replace([""], [None])
-    df['Z68_TOTAL_PRICE'] = df['Z68_TOTAL_PRICE'].replace(["", None])
+    df = df.replace([""], [None])
     return df
 
 
@@ -198,7 +196,8 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
         row_dict = row.to_dict()
         this_id = row_dict['id']
         del row_dict['id']
-        db.query(Order).filter(Order.id == this_id).update(dict_mapping(row_dict, col_mapping))
+        mapped_dict = dict_mapping(row_dict, col_mapping)
+        db.query(Order).filter(Order.id == this_id).update(mapped_dict)
 
     logger.info("UPDATING PHASE COMPLETED")
 

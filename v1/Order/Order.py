@@ -1,3 +1,4 @@
+import random
 from core.schema import *
 from fastapi import Depends, HTTPException, APIRouter, Body, Form
 from datetime import date
@@ -17,22 +18,34 @@ def get_db():
         db.close()
 
 
-@router.get("/all-orders", response_model=PageableOrdersSet)
-def get_all_order(page_index: Optional[int] = None, page_size: Optional[int] = None,
-                  db: Session = Depends(get_db)):
+@router.post("/all-orders", response_model=PageableOrdersSet)
+def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
+    page_index = body.page_index
+    page_size = body.page_size
+
     result_set, total_records = crud.get_all_orders(db, page_index, page_size)
+    result_lst = []
+
+    # for development purposes ONLY
+    for row in result_set:
+        row_dict = dict(row._mapping)
+        row_dict['tags'] = [random.choice(list(Tags))]
+        result_lst.append(row_dict)
+
     pageable_set = {
         'page_index': page_index,
         'page_limit': page_size,
         'total_pages': total_records // page_size,
-        'result': result_set
+        'result': result_lst
     }
     return PageableOrdersSet(**pageable_set)
 
 
 @router.get("/all-orders/detail", response_model=OrderDetail)
 def get_order_detail(order_id: int, db: Session = Depends(get_db)):
-    return crud.get_order_detail(db, order_id)
+    row_dict = crud.get_order_detail(db, order_id).__dict__
+    row_dict['tags'] = [random.choice(list(Tags))]
+    return row_dict
 
 
 @router.get("/cdl-order", response_model=PageableCDLOrdersSet, tags=["CDL Order"])

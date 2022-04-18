@@ -20,7 +20,6 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10):
 
 def get_order_detail(db: Session, order_id: int):
     query = db.query(Order).filter(Order.id == order_id).first()
-    print(query.tracking_note)
     return query
 
 
