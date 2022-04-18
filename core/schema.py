@@ -97,7 +97,7 @@ class OrderDetail(Order):
     arrival_status: Optional[str]
     arrival_operator: Optional[str]
     items_created: Optional[str]
-    items_status: Optional[str]
+    item_status: Optional[str]
     material: Optional[str]
     collection: Optional[str]
     ips_update_date: Optional[date]
