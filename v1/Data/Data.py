@@ -5,6 +5,7 @@ from fastapi import APIRouter, FastAPI, File, Header, Depends, BackgroundTasks, 
 from sqlalchemy.orm import Session
 from core.database import crud, model
 from core.database.database import SessionLocal, engine
+
 router = APIRouter(prefix='/data')
 
 
@@ -27,6 +28,9 @@ async def upload_file(
         file: UploadFile = File(...),
         file_size: int = Depends(valid_content_length)):
     output_file = f"assets/source/{file.filename}"
+    if file.filename.split('.')[-1] not in ['csv', 'xls', 'xlsx']:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Please only upload file ends with .csv, .xls, or .xlsx")
     real_file_size = 0
 
     try:
@@ -45,8 +49,8 @@ async def upload_file(
     except BaseException as e:
         print(e)
         raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="There was an error processing your file",
-                    )
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="There was an error processing your file",
+        )
 
     return {"message": msg}
