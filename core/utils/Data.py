@@ -70,7 +70,28 @@ def prepare_for_db(df):
     return df
 
 
-def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
+def clean_data(df):
+    df = df.applymap(lambda x: x.strip() if type(x) == str else x)
+    for d in date_rows:
+        df[d] = df[d].apply(strf_date)
+
+    df = df.reset_index(drop=True)
+    df = df.drop_duplicates()
+    barcode_duplicates = df['Z30_BARCODE'].duplicated(keep='last')
+    barcode_duplicates.name = 'barcode_duplicates'
+    df = df.join(barcode_duplicates)
+    barcode_nan = df['Z30_BARCODE'].isnull()
+    barcode_nan.name = 'barcode_nan'
+    df = df.join(barcode_nan)
+    df = df[(df['barcode_duplicates'] == False) | (df['barcode_nan'] == True)]
+    df = df.drop(['barcode_duplicates', 'barcode_nan'], axis=1)
+    df['Z68_TOTAL_PRICE'] = df['Z68_TOTAL_PRICE'].fillna("")
+    df['Z68_TOTAL_PRICE'] = df['Z68_TOTAL_PRICE'].apply(lambda x: "".join(x.split(',')))
+    df = df.reset_index(drop=True)
+    return df
+
+
+async def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
     logger.info("DATA INGESTION STARTED")
     cnx = engine.connect()
     prev = pd.read_sql_table("nyc_orders", cnx)
@@ -81,20 +102,7 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
     elif path_lst[-1] == "csv":
         curr = pd.read_csv(path, dtype=str)
 
-    curr = curr.applymap(lambda x: x.strip() if type(x) == str else x)
-    for d in date_rows:
-        curr[d] = curr[d].apply(strf_date)
-
-    curr = curr.reset_index(drop=True)
-    curr = curr.drop_duplicates()
-    barcode_duplicates = curr['Z30_BARCODE'].duplicated(keep='last')
-    barcode_duplicates.name = 'barcode_duplicates'
-    curr = curr.join(barcode_duplicates)
-    curr = curr[curr['barcode_duplicates'] == False]
-    curr = curr.drop(['barcode_duplicates'], axis=1)
-    curr['Z68_TOTAL_PRICE'] = curr['Z68_TOTAL_PRICE'].fillna("")
-    curr['Z68_TOTAL_PRICE'] = curr['Z68_TOTAL_PRICE'].apply(lambda x: "".join(x.split(',')))
-    curr = curr.reset_index(drop=True)
+    curr = clean_data(curr)
 
     prev = prev[prev["order_number"].str.contains("NYUSH")]
     curr = curr[curr["Z68_ORDER_NUMBER"].str.contains("NYUSH")]
@@ -201,6 +209,7 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
 
     logger.info("UPDATING PHASE COMPLETED")
 
+    to_del.to_csv(f"./assets/to_del/{date.strftime(date.today(), '%Y%m%d')}_to_del.csv")
     for idx, row in tqdm(to_del.iterrows()):
         db.query(Order).filter(Order.id == row['id']).delete()
 

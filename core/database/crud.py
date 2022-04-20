@@ -1,8 +1,6 @@
-from fastapi import HTTPException
+from .. import schema
+
 from sqlalchemy.orm import Session
-from sqlalchemy import insert, values, and_
-from datetime import date, datetime
-from ..schema import *
 from .model import *
 
 
@@ -23,7 +21,7 @@ def get_order_detail(db: Session, order_id: int):
     return query
 
 
-def add_tracking_note(db: Session, note: TimelineNote):
+def add_tracking_note(db: Session, note: schema.TimelineNote):
     new_note = TrackingNote(**note.__dict__)
     db.add(new_note)
     db.commit()
@@ -39,3 +37,23 @@ def get_starting_position(db: Session, barcode: int, order_number: str):
 
 def get_order_count(db: Session):
     return db.query(Order.id).count()
+
+
+def get_all_vendors(db: Session):
+    return db.query(Vendor).all()
+
+
+def get_vendor(db: Session, code: str):
+    return db.query(Vendor).filter(Vendor.code == code).first()
+
+
+def update_vendor(db: Session, vendor: schema.Vendor):
+    return db.query(Vendor).filter(Vendor.code == vendor.code).update(vendor.__dict__)
+
+
+def add_vendor(db: Session, vendor: schema.Vendor):
+    new_vendor = Vendor(**vendor.__dict__)
+    db.add(new_vendor)
+    db.commit()
+    db.refresh(new_vendor)
+    return new_vendor

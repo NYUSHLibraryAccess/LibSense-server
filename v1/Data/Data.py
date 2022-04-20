@@ -2,6 +2,7 @@ import aiofiles
 from core.utils import Data
 from starlette import status
 from fastapi import APIRouter, FastAPI, File, Header, Depends, BackgroundTasks, UploadFile, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from core.database import crud, model
 from core.database.database import SessionLocal, engine
@@ -45,7 +46,9 @@ async def upload_file(
                 await out_file.write(content)  # async write chunk
         msg = f"Successfully updated database with {file.filename}."
         # background_tasks.add_task(Data.data_ingestion, db, output_file)
-        Data.data_ingestion(db, output_file)
+        await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
+        # await Data.data_ingestion(db, output_file)
+
     except BaseException as e:
         print(e)
         raise HTTPException(

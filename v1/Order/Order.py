@@ -19,7 +19,7 @@ def get_db():
 
 
 @router.post("/all-orders", response_model=PageableOrdersSet)
-def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
+async def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
     page_size = body.page_size
 
@@ -35,7 +35,7 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     pageable_set = {
         'page_index': page_index,
         'page_limit': page_size,
-        'total_pages': total_records // page_size,
+        'total_records': total_records,
         'result': result_lst
     }
     return PageableOrdersSet(**pageable_set)

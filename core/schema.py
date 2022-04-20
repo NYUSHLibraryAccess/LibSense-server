@@ -35,7 +35,7 @@ class SortCol(CamelModel):
 class PageableResultSet(CamelModel):
     page_index: int = 0
     page_limit: int = 0
-    total_pages: int = 0
+    total_records: int = 0
 
     class Config:
         orm_mode = True
@@ -73,14 +73,14 @@ class User(CamelModel):
 class Order(CamelModel):
     id: int
     tags: Optional[List[Tags]]
-    barcode: str
+    barcode: Optional[str]
     title: str
     order_number: str
     created_date: date
     arrival_date: Optional[date]
     ips_code: Optional[str]
     ips: Optional[str]
-    ips_date: date
+    ips_date: Optional[date]
     vendor_code: str
     library_note: Optional[str]
     override_date: Optional[Union[date, str]]
@@ -153,6 +153,8 @@ class PageableCDLOrdersSet(PageableResultSet):
 
 
 class Vendor(CamelModel):
+    code: str
     name: str
-    id: str
-    notify_date: str
+    # Category: 0 - local, 1 - other
+    category: int
+    notify_in: int

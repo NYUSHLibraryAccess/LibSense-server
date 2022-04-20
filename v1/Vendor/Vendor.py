@@ -6,7 +6,7 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/vendor", tags=["Vendor"])
 
 
-@router.get("/", response_model=List[Vendor])
+@router.get("/", response_model=Vendor)
 async def get_vendor(vendor_id: Optional[str]):
     return True
 
