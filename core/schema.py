@@ -23,6 +23,9 @@ class Tags(str, Enum):
 
 class CamelModel(BaseModel):
     class Config:
+        orm_mode = True
+        use_enum_values = True
+        allow_populate_by_alias = True
         alias_generator = to_camel
         allow_population_by_field_name = True
 
@@ -84,11 +87,6 @@ class Order(CamelModel):
     vendor_code: str
     library_note: Optional[str]
     override_date: Optional[Union[date, str]]
-
-    class Config:
-        orm_mode = True
-        use_enum_values = True
-        allow_populate_by_alias = True
 
 
 class OrderDetail(Order):
@@ -153,8 +151,8 @@ class PageableCDLOrdersSet(PageableResultSet):
 
 
 class Vendor(CamelModel):
-    code: str
-    name: str
+    vendor_code: str
+    name: Optional[str]
     # Category: 0 - local, 1 - other
     category: int
-    notify_in: int
+    notify_in: Optional[int]

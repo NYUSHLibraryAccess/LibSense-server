@@ -44,11 +44,12 @@ def get_all_vendors(db: Session):
 
 
 def get_vendor(db: Session, code: str):
-    return db.query(Vendor).filter(Vendor.code == code).first()
+    return db.query(Vendor).filter(Vendor.vendor_code == code).first()
 
 
 def update_vendor(db: Session, vendor: schema.Vendor):
-    return db.query(Vendor).filter(Vendor.code == vendor.code).update(vendor.__dict__)
+    db.query(Vendor).filter(Vendor.vendor_code == vendor.vendor_code).update(vendor.__dict__)
+    db.commit()
 
 
 def add_vendor(db: Session, vendor: schema.Vendor):
@@ -57,3 +58,9 @@ def add_vendor(db: Session, vendor: schema.Vendor):
     db.commit()
     db.refresh(new_vendor)
     return new_vendor
+
+
+def delete_vendor(db: Session, vendor_code):
+    vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
+    db.delete(vendor)
+    db.commit()
