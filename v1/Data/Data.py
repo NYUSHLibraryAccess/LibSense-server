@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from core.database import crud, model
 from core.database.database import SessionLocal, engine
 from loguru import logger
+import core.schema as schema
 
-router = APIRouter(prefix='/data')
+router = APIRouter(prefix='/data', tags=["Data"])
 
 
 def get_db():
@@ -58,3 +59,18 @@ async def upload_file(
         )
 
     return {"message": msg}
+
+
+@router.get("/metadata", response_model=schema.MetaData)
+async def get_metadata(db: Session = Depends(get_db)):
+    tags = [e.value for e in schema.Tags]
+    vendors = crud.get_vendor_meta(db)
+    ips = crud.get_ips_meta(db)
+    oldest_date = crud.get_oldest_date(db)
+
+    return schema.MetaData(
+        ips_code=[i[0] for i in ips],
+        vendors=[v[0] for v in vendors],
+        tags=tags,
+        oldest_date=oldest_date
+    )

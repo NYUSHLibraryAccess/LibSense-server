@@ -6,9 +6,6 @@ from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
 from core.database import crud
-from sqlalchemy.dialects.mysql import insert
-
-from core.database.model import ExtraInfo
 
 pd.options.mode.chained_assignment = None
 

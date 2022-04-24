@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from enum import Enum
 from typing import List, Union, Optional, Dict
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, conlist
 from humps import camelize
 
 
@@ -28,6 +28,20 @@ class CamelModel(BaseModel):
         allow_populate_by_alias = True
         alias_generator = to_camel
         allow_population_by_field_name = True
+
+
+class FieldFilter(CamelModel):
+    op: str
+    field_name: str
+    val: Union[str, List]
+
+
+class DateRangeFilter(FieldFilter):
+    val: conlist(Union[date, None], min_items=2, max_items=2)
+
+
+class Filters(CamelModel):
+    filters: Union[DateRangeFilter, FieldFilter]
 
 
 class SortCol(CamelModel):
@@ -166,3 +180,10 @@ class Vendor(CamelModel):
     # local: 0 - local, 1 - non-local
     local: int
     notify_in: Optional[int]
+
+
+class MetaData(CamelModel):
+    ips_code: Optional[List[Union[str, None]]]
+    tags: Optional[List[Union[str, None]]]
+    vendors: Optional[List[Union[str, None]]]
+    oldest_date: Optional[date]

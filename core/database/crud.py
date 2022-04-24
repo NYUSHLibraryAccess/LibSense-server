@@ -1,4 +1,4 @@
-from .. import schema
+from core import schema
 
 from sqlalchemy.orm import Session
 from .model import *
@@ -72,3 +72,15 @@ def delete_vendor(db: Session, vendor_code):
     vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
     db.delete(vendor)
     db.commit()
+
+
+def get_vendor_meta(db: Session):
+    return db.query(Order.vendor_code).group_by(Order.vendor_code).all()
+
+
+def get_ips_meta(db: Session):
+    return db.query(Order.ips_code).group_by(Order.ips_code).all()
+
+
+def get_oldest_date(db: Session):
+    return db.execute("SELECT MIN(created_date) FROM nyc_orders;").first()[0]
