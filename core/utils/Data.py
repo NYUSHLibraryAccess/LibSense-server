@@ -5,9 +5,6 @@ from datetime import date
 from sqlalchemy.orm import Session
 from loguru import logger
 
-from ..database.model import *
-from ..database.database import engine
-
 pd.options.mode.chained_assignment = None
 
 col_mapping = {
@@ -91,7 +88,9 @@ def clean_data(df):
     return df
 
 
-async def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
+def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
+    from ..database.model import Order
+    from ..database.database import engine
     logger.info("DATA INGESTION STARTED")
     cnx = engine.connect()
     prev = pd.read_sql_table("nyc_orders", cnx)

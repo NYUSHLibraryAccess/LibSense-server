@@ -56,4 +56,10 @@ class Vendor(Base):
     vendor_code = Column(String, primary_key=True, index=True, unique=True)
     name = Column(String)
     notify_in = Column(Integer)
-    category = Column(Integer)
+    local = Column(Integer)
+
+
+class ExtraInfo(Base):
+    __tablename__ = "extra_info"
+    id = Column(Integer, primary_key=True, index=True, unique=True)
+
