@@ -30,8 +30,16 @@ class CamelModel(BaseModel):
         allow_population_by_field_name = True
 
 
+class FilterOperators(str, Enum):
+    IN = 'in'
+    LIKE = 'like'
+    BETWEEN = 'between'
+    GREATER = 'greater'
+    SMALLER = 'smaller'
+
+
 class FieldFilter(CamelModel):
-    op: str
+    op: FilterOperators
     field_name: str
     val: Union[str, List]
 
@@ -155,8 +163,8 @@ class PageableOrdersSet(PageableResultSet):
 class PageableOrderRequest(CamelModel):
     page_index: Optional[int] = 0
     page_size: Optional[int] = 10
-    filters: Optional[Dict]
-    sort: Optional[List[SortCol]]
+    filters: Optional[List[FieldFilter]]
+    sorter: Optional[SortCol]
 
 
 class CDLOrder(Order):

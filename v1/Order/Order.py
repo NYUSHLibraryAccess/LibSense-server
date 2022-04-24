@@ -22,8 +22,10 @@ def get_db():
 async def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
     page_size = body.page_size
+    filters = body.filters
+    sorter = body.sorter
 
-    result_set, total_records = crud.get_all_orders(db, page_index, page_size)
+    result_set, total_records = crud.get_all_orders(db, page_index, page_size, sorter=sorter)
     result_lst = []
 
     for row in result_set:
