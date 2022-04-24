@@ -6,8 +6,8 @@ from .model import *
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10):
     args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code]
-    query = db.query(*args)
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
+    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     total_records = db.query(Order.id).count()
     if start_idx:
         query = query.offset(start_idx * limit)

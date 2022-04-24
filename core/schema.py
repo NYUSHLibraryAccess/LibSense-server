@@ -18,7 +18,7 @@ class Tags(str, Enum):
     NON_RUSH = 'Non-Rush'
     SENSITIVE = 'Sensitive'
     COURSE_RESERVE = 'Course-Reserve'
-    RUSH_DVD = 'Rush-DVD'
+    DVD = 'DVD'
 
 
 class CamelModel(BaseModel):
@@ -73,6 +73,15 @@ class User(CamelModel):
     messages: Optional[int]
 
 
+class ExtraInfo(CamelModel):
+    id: int
+    order_number: str
+    tags: Optional[str]
+    override_reminder_time: Optional[int]
+    reminder_receiver: Optional[str]
+    validation: Optional[int]
+
+
 class Order(CamelModel):
     id: int
     tags: Optional[List[Tags]]
@@ -86,7 +95,8 @@ class Order(CamelModel):
     ips_date: Optional[date]
     vendor_code: str
     library_note: Optional[str]
-    override_date: Optional[Union[date, str]]
+    tags: List[str]
+    # override_date: Optional[Union[date, str]]
 
 
 class OrderDetail(Order):

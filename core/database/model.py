@@ -38,6 +38,7 @@ class Order(Base):
     library_note = Column(String)
 
     tracking_note = relationship("TrackingNote", back_populates="book")
+    extra_info = relationship("ExtraInfo", back_populates="book")
 
 
 class TrackingNote(Base):
@@ -61,5 +62,11 @@ class Vendor(Base):
 
 class ExtraInfo(Base):
     __tablename__ = "extra_info"
-    id = Column(Integer, primary_key=True, index=True, unique=True)
+    id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, index=True, unique=True)
+    order_number = Column(String)
+    tags = Column(String)
+    override_reminder_time = Column(Integer)
+    reminder_receiver = Column(String)
+    validation = Column(Integer)
 
+    book = relationship("Order", back_populates="extra_info")

@@ -6,6 +6,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from core.database import crud, model
 from core.database.database import SessionLocal, engine
+from loguru import logger
 
 router = APIRouter(prefix='/data')
 
@@ -47,10 +48,10 @@ async def upload_file(
         msg = f"Successfully updated database with {file.filename}."
         # background_tasks.add_task(Data.data_ingestion, db, output_file)
         await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
-        # await Data.data_ingestion(db, output_file)
+        await run_in_threadpool(lambda: Data.flush_tags(db))
 
     except BaseException as e:
-        print(e)
+        logger.error(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="There was an error processing your file",

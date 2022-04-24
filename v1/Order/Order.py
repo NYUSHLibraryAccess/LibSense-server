@@ -26,10 +26,9 @@ async def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db
     result_set, total_records = crud.get_all_orders(db, page_index, page_size)
     result_lst = []
 
-    # for development purposes ONLY
     for row in result_set:
         row_dict = dict(row._mapping)
-        row_dict['tags'] = [random.choice(list(Tags))]
+        row_dict['tags'] = row_dict['tags'].split("&")
         result_lst.append(row_dict)
 
     pageable_set = {

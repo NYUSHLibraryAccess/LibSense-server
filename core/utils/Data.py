@@ -2,8 +2,13 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from datetime import date
+from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
+from core.database import crud
+from sqlalchemy.dialects.mysql import insert
+
+from core.database.model import ExtraInfo
 
 pd.options.mode.chained_assignment = None
 
@@ -47,10 +52,44 @@ date_rows = ['Z71_OPEN_DATE',
              'Z68_ORDER_STATUS_DATE_X']
 
 
+def tag_finder(order_row, local_vendors):
+    tags = []
+    keywords = {
+        "Rush": ['Request', 'Need', 'Hold', 'Notify', 'CDL', 'ILL', 'Course', 'Reserve', 'Ares', 'Semester', 'Term',
+                 'Spring', 'Summer', 'Fall', 'Winter', 'Faculty', 'By', 'For', '@', 'nyu', 'Reads', 'Dup', 'Duplicate',
+                 'Rep', 'Repl', 'Replacement', 'Rush', 'Possible', 'ASAP'],
+        "CDL": ["CDL"],
+        "ILL": ["ILL"],
+        "Course-Reserve": ["Course", "Reserve"],
+        "Sensitive": ["SENSITIVE"]
+    }
+
+    if order_row["vendor_code"] and order_row["vendor_code"].upper() in local_vendors:
+        tags.append("Local")
+    else:
+        tags.append("NYC")
+
+    if order_row["material"] and "VIDEO" in order_row["material"]:
+        tags.append("DVD")
+
+    if (note := order_row["library_note"]) is not None:
+        for k, v in keywords.items():
+            for word in v:
+                if word.upper() in note:
+                    tags.append(k)
+                    break
+
+    if "Rush" not in tags:
+        tags.append("Non-Rush")
+
+    return "&".join(tags)
+
+
 def dict_mapping(data: dict, mapping: dict):
     result = {}
     for key, value in data.items():
-        result[mapping[key]] = value
+        if key in mapping.keys():
+            result[mapping[key]] = value
     return result
 
 
@@ -222,5 +261,24 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
 
     db.commit()
     logger.info("COMMIT COMPLETED")
+
+    return True
+
+
+def flush_tags(db):
+    logger.info("TAG FLUSH STARTED")
+    conn = db.get_bind()
+    nyc_orders = pd.read_sql_query("select * from nyc_orders", con=conn)
+    result = crud.get_non_local_vendors(db)
+    local_vendors = [i.vendor_code for i in result]
+    logger.info("DATA READY, MAIN ITERATION STARTED")
+    for idx, row in tqdm(nyc_orders.iterrows()):
+        tags = tag_finder(row, local_vendors)
+        stmt = text("INSERT INTO extra_info (id, order_number, tags) "
+                    "VALUES (:id, :order_number, :tags) "
+                    "ON DUPLICATE KEY UPDATE "
+                    "tags = :tags;")
+        conn.execute(stmt, {"id": row["id"], "order_number": row["order_number"], "tags": tags})
+    logger.info("TAG FLUSH COMPLETED")
 
     return True

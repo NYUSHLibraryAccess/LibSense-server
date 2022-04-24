@@ -35,4 +35,4 @@ if ENV == "TEST":
 app.include_router(api.router)
 
 if __name__ == '__main__':
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8081, reload=True, root_path="/api")
+    uvicorn.run(app="main:app", host="0.0.0.0", port=8081, reload=True)
