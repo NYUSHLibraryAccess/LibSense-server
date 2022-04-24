@@ -52,7 +52,7 @@ class TrackingNote(Base):
 
 
 class Vendor(Base):
-    __tablename__ = "vendor"
+    __tablename__ = "vendors"
     vendor_code = Column(String, primary_key=True, index=True, unique=True)
     name = Column(String)
     notify_in = Column(Integer)

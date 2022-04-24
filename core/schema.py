@@ -153,6 +153,6 @@ class PageableCDLOrdersSet(PageableResultSet):
 class Vendor(CamelModel):
     vendor_code: str
     name: Optional[str]
-    # Category: 0 - local, 1 - other
-    category: int
+    # local: 0 - local, 1 - non-local
+    local: int
     notify_in: Optional[int]
