@@ -40,7 +40,7 @@ class FilterOperators(str, Enum):
 
 class FieldFilter(CamelModel):
     op: FilterOperators
-    field_name: str
+    col: str
     val: Union[str, List]
 
 
@@ -53,7 +53,7 @@ class Filters(CamelModel):
 
 
 class SortCol(CamelModel):
-    row: str
+    col: str
     desc: bool
 
 

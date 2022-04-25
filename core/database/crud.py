@@ -1,5 +1,4 @@
 from core import schema
-
 from sqlalchemy.orm import Session
 from core.database.model import *
 from humps import decamelize
@@ -9,16 +8,23 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
     args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
-    total_records = db.query(Order.id).count()
+    if filters:
+        sql_filters = []
+        for f in filters:
+            if f.op == schema.FilterOperators.IN:
+                sql_filters.append(getattr(Order, decamelize(f.col)).in_(f.val))
+        for f in sql_filters:
+            query = query.filter(f)
     if sorter:
-        row = getattr(Order, decamelize(sorter.row))
-        id_row = Order.id
+        col = getattr(Order, decamelize(sorter.col))
+        id_col = Order.id
         if sorter.desc:
-            row = row.desc()
-            id_row = id_row.desc()
-        query = query.order_by(row, id_row)
+            col = col.desc()
+            id_col = id_col.desc()
+        query = query.order_by(col, id_col)
     if start_idx:
         query = query.offset(start_idx * limit)
+    total_records = query.count()
     if limit:
         query = query.limit(limit)
     return query.all(), total_records
