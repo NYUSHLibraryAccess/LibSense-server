@@ -79,7 +79,7 @@ def tag_finder(order_row, local_vendors):
     if "Rush" not in tags:
         tags.append("Non-Rush")
 
-    return "&".join(tags)
+    return "(" + ")(".join(tags) + ")"
 
 
 def dict_mapping(data: dict, mapping: dict):

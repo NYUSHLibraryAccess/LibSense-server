@@ -48,7 +48,7 @@ async def upload_file(
                 await out_file.write(content)  # async write chunk
         msg = f"Successfully updated database with {file.filename}."
         # background_tasks.add_task(Data.data_ingestion, db, output_file)
-        await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
+        # await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
         await run_in_threadpool(lambda: Data.flush_tags(db))
 
     except BaseException as e:

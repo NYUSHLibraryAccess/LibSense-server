@@ -12,7 +12,13 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
         sql_filters = []
         for f in filters:
             if f.op == schema.FilterOperators.IN:
-                sql_filters.append(getattr(Order, decamelize(f.col)).in_(f.val))
+                if f.col == "tags":
+                    for t in f.val:
+                        sql_filters.append(ExtraInfo.tags.like('%' + t + '%'))
+                else:
+                    sql_filters.append(getattr(Order, decamelize(f.col)).in_(f.val))
+            elif f.op == schema.FilterOperators.LIKE:
+                sql_filters.append(getattr(Order, decamelize(f.col)).like('%' + f.val + '%'))
         for f in sql_filters:
             query = query.filter(f)
     if sorter:
@@ -27,7 +33,7 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
     total_records = query.count()
     if limit:
         query = query.limit(limit)
-    return query.all(), start_idx * limit + total_records
+    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_order_detail(db: Session, order_id: int):
