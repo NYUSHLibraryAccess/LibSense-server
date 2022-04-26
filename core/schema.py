@@ -232,6 +232,3 @@ class Overview(CamelModel):
     min_cdl: int
     min_rush_nyc: int
     min_rush_local: int
-
-
-
