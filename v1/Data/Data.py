@@ -67,10 +67,14 @@ async def get_metadata(db: Session = Depends(get_db)):
     vendors = crud.get_vendor_meta(db)
     ips = crud.get_ips_meta(db)
     oldest_date = crud.get_oldest_date(db)
+    material = crud.get_material_meta(db)
+    material_type = crud.get_material_type_meta(db)
 
     return schema.MetaData(
         ips_code=[i[0] for i in ips],
         vendors=[v[0] for v in vendors],
         tags=tags,
-        oldest_date=oldest_date
+        oldest_date=oldest_date,
+        material=[m[0] for m in material],
+        material_type=[mt[0] for mt in material_type]
     )

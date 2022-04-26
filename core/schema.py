@@ -203,3 +203,27 @@ class MetaData(CamelModel):
     tags: Optional[List[Union[str, None]]]
     vendors: Optional[List[Union[str, None]]]
     oldest_date: Optional[date]
+    material: Optional[List[Union[str, None]]]
+    material_type: Optional[List[Union[str, None]]]
+
+
+class Overview(CamelModel):
+    local_rush_pending: int
+
+    avg_cdl_scan: int = 0
+    avg_cdl: int
+    avg_rush_nyc: int
+    avg_rush_local: int
+
+    max_cdl_scan: int = 0
+    max_cdl: int
+    max_rush_nyc: int
+    max_rush_local: int
+
+    min_cdl_scan: int = 0
+    min_cdl: int
+    min_rush_nyc: int
+    min_rush_local: int
+
+
+

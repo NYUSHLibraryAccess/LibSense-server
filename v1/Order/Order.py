@@ -49,6 +49,30 @@ def get_order_detail(order_id: int, db: Session = Depends(get_db)):
     return row_dict
 
 
+@router.post("/all-orders/tracking", response_model=PageableOrdersSet)
+def get_overdue(body: PageableOrderRequest, db: Session = Depends(get_db)):
+    page_index = body.page_index
+    page_size = body.page_size
+    filters = body.filters
+    sorter = body.sorter
+
+    result_set, total_records = crud.get_overdue_rush_local(db, page_index, page_size, filters=filters, sorter=sorter)
+    result_lst = []
+
+    for row in result_set:
+        row_dict = dict(row._mapping)
+        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
+        result_lst.append(row_dict)
+
+    pageable_set = {
+        'page_index': page_index,
+        'page_limit': page_size,
+        'total_records': total_records,
+        'result': result_lst
+    }
+    return PageableOrdersSet(**pageable_set)
+
+
 @router.get("/cdl-order", response_model=PageableCDLOrdersSet, tags=["CDL Order"])
 async def get_cdl_order(page_index: Optional[int] = None, page_size: Optional[int] = None):
     return True

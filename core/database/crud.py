@@ -1,7 +1,38 @@
 from core import schema
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from core.database.model import *
 from core.database.utils import compile_filters, compile_sorters
+
+
+def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
+    args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
+    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id) \
+        .join(Vendor, Order.vendor_code == Vendor.vendor_code) \
+        .filter(Order.arrival_date == None)
+    if filters:
+        table_mapping = {
+            "tags": ExtraInfo,
+            "default": Order
+        }
+        query = compile_filters(query, filters, table_mapping)
+    if sorter:
+        query = compile_sorters(query, sorter, Order)
+
+    suffix = """extra_info.tags like '%[Rush]%' and extra_info.tags like '%[Local]%'
+and (((override_reminder_time is null) and (DATEDIFF(current_timestamp(), created_date) > notify_in))
+or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)))
+            """
+    query = query.filter(text(suffix.replace("\n", " ")))
+
+    if start_idx:
+        query = query.offset(start_idx * limit)
+    total_records = query.count()
+    if limit:
+        query = query.limit(limit)
+
+    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
@@ -92,3 +123,63 @@ def get_ips_meta(db: Session):
 
 def get_oldest_date(db: Session):
     return db.execute("SELECT MIN(created_date) FROM nyc_orders;").first()[0]
+
+
+def get_material_meta(db: Session):
+    return db.execute("SELECT material FROM nyc_orders GROUP BY material").all()
+
+
+def get_material_type_meta(db: Session):
+    return db.execute("SELECT material_type FROM nyc_orders GROUP BY material_type").all()
+
+
+def get_local_rush_pending(db: Session):
+    query = """
+        select count(o.id)
+        from libsense.nyc_orders as o join libsense.extra_info as e join libsense.vendors as v
+        on e.id = o.id and o.vendor_code = v.vendor_code
+        where (arrival_date is null)
+          and e.checked = 0 
+          and e.tags like '%%[Rush]%%'
+          and e.tags like '%%[Local]%%'
+          and (((override_reminder_time is null) 
+                    and (DATEDIFF(current_timestamp(), created_date) > notify_in))
+                or ((override_reminder_time is not null) 
+                    and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)));
+    """
+    return db.execute(query.replace("\n", " ")).first()
+
+
+def get_average_days(db: Session):
+    cdl = """
+        select floor(avg(datediff(arrival_date, created_date))) as avg,
+        max(floor(datediff(arrival_date, created_date))) as max,
+        min(floor(datediff(arrival_date, created_date))) as min
+        from nyc_orders join extra_info ei on nyc_orders.id = ei.id
+        where arrival_date is not null
+        and tags like '%%[CDL]%%';
+    """
+    rush_nyc = """
+        select floor(avg(datediff(arrival_date, created_date))) as avg,
+        max(floor(datediff(arrival_date, created_date))) as max,
+        min(floor(datediff(arrival_date, created_date))) as min
+        from nyc_orders join extra_info ei on nyc_orders.id = ei.id
+        where arrival_date is not null
+        and tags like '%%[Rush]%%'
+        and tags like '%%[NYC]%%';
+    """
+    rush_local = """
+        select floor(avg(datediff(arrival_date, created_date))) as avg,
+        max(floor(datediff(arrival_date, created_date))) as max,
+        min(floor(datediff(arrival_date, created_date))) as min
+        from nyc_orders join extra_info ei on nyc_orders.id = ei.id
+        where arrival_date is not null
+        and tags like '%%[Rush]%%'
+        and tags like '%%[Local]%%';
+    """
+
+    cdl_rs = db.execute(cdl.replace("\n", " ")).first()
+    rush_nyc_rs = db.execute(rush_nyc.replace("\n", " ")).first()
+    rush_local_rs = db.execute(rush_local.replace("\n", " ")).first()
+
+    return cdl_rs, rush_nyc_rs, rush_local_rs
