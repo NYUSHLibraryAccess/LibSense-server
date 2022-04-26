@@ -1,7 +1,7 @@
 from core import schema
 from sqlalchemy.orm import Session
 from core.database.model import *
-from humps import decamelize
+from core.database.utils import compile_filters, compile_sorters
 
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
@@ -9,25 +9,9 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     if filters:
-        sql_filters = []
-        for f in filters:
-            if f.op == schema.FilterOperators.IN:
-                if f.col == "tags":
-                    for t in f.val:
-                        sql_filters.append(ExtraInfo.tags.like('%[' + t + ']%'))
-                else:
-                    sql_filters.append(getattr(Order, decamelize(f.col)).in_(f.val))
-            elif f.op == schema.FilterOperators.LIKE:
-                sql_filters.append(getattr(Order, decamelize(f.col)).like('%' + f.val + '%'))
-        for f in sql_filters:
-            query = query.filter(f)
+        query = compile_filters(query, filters, Order)
     if sorter:
-        col = getattr(Order, decamelize(sorter.col))
-        id_col = Order.id
-        if sorter.desc:
-            col = col.desc()
-            id_col = id_col.desc()
-        query = query.order_by(col, id_col)
+        query = compile_sorters(query, sorter, Order)
     if start_idx:
         query = query.offset(start_idx * limit)
     total_records = query.count()
