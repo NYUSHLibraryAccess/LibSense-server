@@ -14,7 +14,7 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
             if f.op == schema.FilterOperators.IN:
                 if f.col == "tags":
                     for t in f.val:
-                        sql_filters.append(ExtraInfo.tags.like('%' + t + '%'))
+                        sql_filters.append(ExtraInfo.tags.like('%[' + t + ']%'))
                 else:
                     sql_filters.append(getattr(Order, decamelize(f.col)).in_(f.val))
             elif f.op == schema.FilterOperators.LIKE:

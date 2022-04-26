@@ -20,6 +20,14 @@ class Tags(str, Enum):
     COURSE_RESERVE = 'Course-Reserve'
     DVD = 'DVD'
 
+    @staticmethod
+    def split_tags(tag_str):
+        return tag_str[1:-1].split("][")
+
+    @staticmethod
+    def encode_tags(tags_list):
+        return "[" + "][".join(tags_list) + "]"
+
 
 class CamelModel(BaseModel):
     class Config:

@@ -6,6 +6,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
 from core.database import crud
+from core.schema import Tags
 
 pd.options.mode.chained_assignment = None
 
@@ -79,7 +80,7 @@ def tag_finder(order_row, local_vendors):
     if "Rush" not in tags:
         tags.append("Non-Rush")
 
-    return "(" + ")(".join(tags) + ")"
+    return Tags.encode_tags(tags)
 
 
 def dict_mapping(data: dict, mapping: dict):

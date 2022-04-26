@@ -30,7 +30,7 @@ async def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db
 
     for row in result_set:
         row_dict = dict(row._mapping)
-        row_dict['tags'] = row_dict['tags'].split("&")
+        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
         result_lst.append(row_dict)
 
     pageable_set = {
