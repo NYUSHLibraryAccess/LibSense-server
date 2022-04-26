@@ -5,7 +5,7 @@ from core.database.model import *
 from core.database.utils import compile_filters, compile_sorters
 
 
-def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
+def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
     args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id) \
@@ -29,9 +29,11 @@ or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), crea
     if start_idx:
         query = query.offset(start_idx * limit)
     total_records = query.count()
-    if limit:
+    if limit != -1:
         query = query.limit(limit)
 
+    if for_pandas:
+        return query.statement
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
