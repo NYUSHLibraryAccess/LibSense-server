@@ -3,13 +3,17 @@ from core.database.model import *
 from humps import decamelize
 
 
-def compile_filters(query, filters, target_table):
+def compile_filters(query, filters, table_mapping):
     sql_filters = []
     for f in filters:
+        if f.col in table_mapping.keys():
+            target_table = table_mapping[f.col]
+        else:
+            target_table = table_mapping["default"]
         if f.op == schema.FilterOperators.IN:
             if f.col == "tags":
                 for t in f.val:
-                    sql_filters.append(ExtraInfo.tags.like('%[' + t + ']%'))
+                    sql_filters.append(target_table.tags.like('%[' + t + ']%'))
             else:
                 sql_filters.append(getattr(target_table, decamelize(f.col)).in_(f.val))
 

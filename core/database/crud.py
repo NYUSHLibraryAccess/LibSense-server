@@ -9,7 +9,11 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     if filters:
-        query = compile_filters(query, filters, Order)
+        table_mapping = {
+            "tags": ExtraInfo,
+            "default": Order
+        }
+        query = compile_filters(query, filters, table_mapping)
     if sorter:
         query = compile_sorters(query, sorter, Order)
     if start_idx:
