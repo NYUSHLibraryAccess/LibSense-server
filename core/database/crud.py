@@ -2,7 +2,7 @@ from core import schema
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from core.database.model import *
-from core.database.utils import compile_filters, compile_sorters
+from core.database.utils import compile, compile_filters, compile_sorters
 
 
 def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
@@ -13,8 +13,8 @@ def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, fil
         .filter(Order.arrival_date == None)
     if filters:
         table_mapping = {
-            "tags": ExtraInfo,
-            "default": Order
+            "ExtraInfo": ["tags"],
+            "default": "Order"
         }
         query = compile_filters(query, filters, table_mapping)
     if sorter:
@@ -39,25 +39,31 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
     args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
-    if filters:
-        table_mapping = {
-            "tags": ExtraInfo,
-            "default": Order
-        }
-        query = compile_filters(query, filters, table_mapping)
-    if sorter:
-        query = compile_sorters(query, sorter, Order)
-    if start_idx:
-        query = query.offset(start_idx * limit)
-    total_records = query.count()
-    if limit:
-        query = query.limit(limit)
+    table_mapping = {
+        "ExtraInfo": ["tags"],
+        "default": "Order"
+    }
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_order_detail(db: Session, order_id: int):
     query = db.query(Order).filter(Order.id == order_id).first()
     return query
+
+
+def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
+    args = [CDLOrder.cdl_item_status, Order.id, Order.barcode, Order.title, Order.order_number,
+            CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date, CDLOrder.pdf_delivery_date,
+            CDLOrder.circ_pdf_url, ExtraInfo.tags]
+    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).join(ExtraInfo, ExtraInfo.id == Order.id)
+    table_mapping = {
+        ExtraInfo: ["tags"],
+        Order: ["id", "barcode", "title", "order_number"],
+        "default": "CDLOrder"
+    }
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
+    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def add_tracking_note(db: Session, note: schema.TimelineNote):

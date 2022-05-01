@@ -19,7 +19,7 @@ def get_db():
 
 
 @router.post("/all-orders", response_model=PageableOrdersSet)
-async def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
+def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
     page_size = body.page_size
     filters = body.filters
@@ -73,13 +73,32 @@ def get_overdue(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return PageableOrdersSet(**pageable_set)
 
 
-@router.get("/cdl-order", response_model=PageableCDLOrdersSet, tags=["CDL Order"])
-async def get_cdl_order(page_index: Optional[int] = None, page_size: Optional[int] = None):
-    return True
+@router.post("/cdl-orders", response_model=PageableCDLOrdersSet, tags=["CDL Order"])
+def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
+    page_index = body.page_index
+    page_size = body.page_size
+    filters = body.filters
+    sorter = body.sorter
+
+    result_set, total_records = crud.get_all_cdl(db, page_index, page_size, filters=filters, sorter=sorter)
+    result_lst = []
+
+    for row in result_set:
+        row_dict = dict(row._mapping)
+        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
+        result_lst.append(row_dict)
+
+    pageable_set = {
+        'page_index': page_index,
+        'page_limit': page_size,
+        'total_records': total_records,
+        'result': result_lst
+    }
+    return PageableCDLOrdersSet(**pageable_set)
 
 
 @router.patch("/general-order")
-async def update_general_order(net_id: str, order: Order):
+def update_general_order(net_id: str, order: Order):
     return True
 
 

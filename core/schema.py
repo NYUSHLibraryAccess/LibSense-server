@@ -118,12 +118,12 @@ class Order(CamelModel):
     barcode: Optional[str]
     title: str
     order_number: str
-    created_date: date
+    created_date: Optional[str]
     arrival_date: Optional[date]
     ips_code: Optional[str]
     ips: Optional[str]
     ips_date: Optional[date]
-    vendor_code: str
+    vendor_code: Optional[str]
     library_note: Optional[str]
     tags: List[str]
     # override_date: Optional[Union[date, str]]
@@ -175,15 +175,23 @@ class PageableOrderRequest(CamelModel):
     sorter: Optional[SortCol]
 
 
-class CDLOrder(Order):
-    cdl_status: int
-    scan_ven_pymt_date: date
-    pdf_delivery_date: date
-    date_back_to_karms: Union[date, str]
-    file_url: Optional[str]
-    password: Optional[str]
-    bobcat_link: Optional[str]
-    circ_pdf_link: Optional[str]
+class CDLOrder(CamelModel):
+    id: int
+    tags: Optional[List[Tags]]
+    barcode: Optional[str]
+    title: str
+    order_number: str
+    cdl_item_status: str
+    order_request_date: Optional[date]
+    scanning_vendor_payment_date: Optional[date]
+    pdf_delivery_date: Optional[date]
+    back_to_karms_date: Optional[Union[date, str]]
+    circ_pdf_url: Optional[str]
+
+
+class CDLOrderDetail(CDLOrder):
+    bobcat_permanent_link: Optional[str]
+    file_password: Optional[str]
 
 
 class PageableCDLOrdersSet(PageableResultSet):

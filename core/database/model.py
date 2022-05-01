@@ -41,6 +41,28 @@ class Order(Base):
     extra_info = relationship("ExtraInfo", back_populates="book")
 
 
+class CDLOrder(Base):
+    __tablename__ = "cdl_info"
+    book_id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True)
+    # order_number = Column(String, ForeignKey("nyc_orders.order_number"))
+    # title = Column(String)
+    # barcode = Column(String)
+    cdl_item_status = Column(String)
+    order_request_date = Column(DateTime)
+    order_purchased_date = Column(DateTime)
+    due_date = Column(DateTime)
+    physical_copy_status = Column(String)
+    scanning_vendor_payment_date = Column(DateTime)
+    pdf_delivery_date = Column(DateTime)
+    back_to_karms_date = Column(String)
+    bobcat_permanent_link = Column(String)
+    circ_pdf_url = Column(String)
+    vendor_file_url = Column(String)
+    file_password = Column(String)
+    author = Column(String)
+    pages = Column(String)
+
+
 class TrackingNote(Base):
     __tablename__ = "notes"
     id = Column(Integer, primary_key=True, index=True, unique=True)
@@ -70,3 +92,12 @@ class ExtraInfo(Base):
     validation = Column(Integer)
 
     book = relationship("Order", back_populates="extra_info")
+
+
+MAPPING = {
+    "Order": Order,
+    "CDLOrder": CDLOrder,
+    "TrackingNote": TrackingNote,
+    "Vendor": Vendor,
+    "ExtraInfo": ExtraInfo
+}

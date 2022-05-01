@@ -73,7 +73,7 @@ def tag_finder(order_row, local_vendors):
     if (note := order_row["library_note"]) is not None:
         for k, v in keywords.items():
             for word in v:
-                if word.upper() in note:
+                if word.lower() in note.lower():
                     tags.append(k)
                     break
 
