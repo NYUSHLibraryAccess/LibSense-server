@@ -6,11 +6,11 @@ from humps import decamelize
 def compile_filters(query, filters, table_mapping):
     sql_filters = []
     for f in filters:
+        target_table = None
         for table_name, columns in table_mapping.items():
-            if f.col in columns:
+            if decamelize(f.col) in columns:
                 target_table = MAPPING[table_name]
-            else:
-                target_table = MAPPING[table_mapping["default"]]
+        target_table = MAPPING[table_mapping["default"]] if target_table is None else target_table
         if f.op == schema.FilterOperators.IN:
             if f.col == "tags":
                 for t in f.val:

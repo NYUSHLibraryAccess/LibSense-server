@@ -86,6 +86,7 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     for row in result_set:
         row_dict = dict(row._mapping)
         row_dict['tags'] = Tags.split_tags(row_dict['tags'])
+        row_dict['cdl_item_status'] = [row_dict['cdl_item_status']]
         result_lst.append(row_dict)
 
     pageable_set = {

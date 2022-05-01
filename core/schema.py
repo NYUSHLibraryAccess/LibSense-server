@@ -29,6 +29,15 @@ class Tags(str, Enum):
         return "[" + "][".join(tags_list) + "]"
 
 
+class CDLStatus(str, Enum):
+    CDL_SILENT = "CDL Silent"
+    C_PDF_AVAIL = "Circ PDF Available"
+    V_PDF_AVAIL = "Vendor PDF Available"
+    CDL_DVD = "CDL DVD"
+    REQUESTED = "Requested"
+    ON_LOAN = "On Loan"
+
+
 class CamelModel(BaseModel):
     class Config:
         orm_mode = True
@@ -118,7 +127,7 @@ class Order(CamelModel):
     barcode: Optional[str]
     title: str
     order_number: str
-    created_date: Optional[str]
+    created_date: Optional[date]
     arrival_date: Optional[date]
     ips_code: Optional[str]
     ips: Optional[str]
@@ -175,13 +184,8 @@ class PageableOrderRequest(CamelModel):
     sorter: Optional[SortCol]
 
 
-class CDLOrder(CamelModel):
-    id: int
-    tags: Optional[List[Tags]]
-    barcode: Optional[str]
-    title: str
-    order_number: str
-    cdl_item_status: str
+class CDLOrder(Order):
+    cdl_item_status: Optional[List[CDLStatus]]
     order_request_date: Optional[date]
     scanning_vendor_payment_date: Optional[date]
     pdf_delivery_date: Optional[date]

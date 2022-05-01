@@ -55,14 +55,16 @@ def get_order_detail(db: Session, order_id: int):
 
 
 def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
-    args = [CDLOrder.cdl_item_status, Order.id, Order.barcode, Order.title, Order.order_number,
-            CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date, CDLOrder.pdf_delivery_date,
-            CDLOrder.circ_pdf_url, ExtraInfo.tags]
+    args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
+            CDLOrder.pdf_delivery_date, CDLOrder.circ_pdf_url, CDLOrder.back_to_karms_date,
+            Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).join(ExtraInfo, ExtraInfo.id == Order.id)
     table_mapping = {
-        ExtraInfo: ["tags"],
-        Order: ["id", "barcode", "title", "order_number"],
-        "default": "CDLOrder"
+        "ExtraInfo": ["tags"],
+        "CDLOrder": ["cdl_item_status", "order_request_date", "scanning_vendor_payment_date", "pdf_delivery_date",
+                     "circ_pdf_url", "back_to_karms_date"],
+        "default": "Order"
     }
     query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
