@@ -1,6 +1,7 @@
 from core import schema
 from core.database.model import MAPPING
 from humps import decamelize
+from sqlalchemy import or_
 
 
 def compile_filters(query, filters, table_mapping):
@@ -13,8 +14,10 @@ def compile_filters(query, filters, table_mapping):
         target_table = MAPPING[table_mapping["default"]] if target_table is None else target_table
         if f.op == schema.FilterOperators.IN:
             if f.col == "tags":
+                or_flags = []
                 for t in f.val:
-                    sql_filters.append(target_table.tags.like('%[' + t + ']%'))
+                    or_flags.append(target_table.tags.like('%[' + t + ']%'))
+                sql_filters.append(or_(*or_flags))
             else:
                 sql_filters.append(getattr(target_table, decamelize(f.col)).in_(f.val))
 
