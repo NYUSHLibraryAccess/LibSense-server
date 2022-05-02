@@ -18,7 +18,7 @@ def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, fil
         }
         query = compile_filters(query, filters, table_mapping)
     if sorter:
-        query = compile_sorters(query, sorter, Order)
+        query = compile_sorters(query, sorter, table_mapping, Order.id)
 
     suffix = """extra_info.tags like '%[Rush]%' and extra_info.tags like '%[Local]%'
 and (((override_reminder_time is null) and (DATEDIFF(current_timestamp(), created_date) > notify_in))
