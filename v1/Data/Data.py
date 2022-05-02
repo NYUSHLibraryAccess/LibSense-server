@@ -69,6 +69,7 @@ async def get_metadata(db: Session = Depends(get_db)):
     oldest_date = crud.get_oldest_date(db)
     material = crud.get_material_meta(db)
     material_type = crud.get_material_type_meta(db)
+    cdl_tags = [i for i in schema.CDLStatus]
 
     return schema.MetaData(
         ips_code=[i[0] for i in ips],
@@ -76,5 +77,6 @@ async def get_metadata(db: Session = Depends(get_db)):
         tags=tags,
         oldest_date=oldest_date,
         material=[m[0] for m in material],
-        material_type=[mt[0] for mt in material_type]
+        material_type=[mt[0] for mt in material_type],
+        cdl_tags=cdl_tags
     )

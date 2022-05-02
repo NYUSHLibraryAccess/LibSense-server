@@ -223,6 +223,7 @@ class MetaData(CamelModel):
     oldest_date: Optional[date]
     material: Optional[List[Union[str, None]]]
     material_type: Optional[List[Union[str, None]]]
+    cdl_tags: Optional[List[Union[str, None]]]
 
 
 class Overview(CamelModel):
