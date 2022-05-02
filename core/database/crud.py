@@ -50,7 +50,7 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
 
 
 def get_order_detail(db: Session, order_id: int):
-    query = db.query(Order).filter(Order.id == order_id).first()
+    query = db.query(Order, ExtraInfo).join(ExtraInfo, Order.id == ExtraInfo.id).filter(Order.id == order_id).first()
     return query
 
 
@@ -68,6 +68,12 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
     }
     query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+
+
+def get_cdl_detail(db: Session, order_id: int):
+    query = db.query(CDLOrder, Order, ExtraInfo).join(Order, CDLOrder.book_id == Order.id)\
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.book_id == order_id).first()
+    return query
 
 
 def add_tracking_note(db: Session, note: schema.TimelineNote):

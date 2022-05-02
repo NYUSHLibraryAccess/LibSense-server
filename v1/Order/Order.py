@@ -18,6 +18,15 @@ def get_db():
         db.close()
 
 
+def get_tags(result_set):
+    result_lst = []
+    for row in result_set:
+        row_dict = dict(row._mapping)
+        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
+        result_lst.append(row_dict)
+    return result_lst
+
+
 @router.post("/all-orders", response_model=PageableOrdersSet)
 def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
@@ -26,13 +35,7 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     sorter = body.sorter
 
     result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter)
-    result_lst = []
-
-    for row in result_set:
-        row_dict = dict(row._mapping)
-        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
-        result_lst.append(row_dict)
-
+    result_lst = get_tags(result_set)
     pageable_set = {
         'page_index': page_index,
         'page_limit': page_size,
@@ -44,9 +47,10 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
 
 @router.get("/all-orders/detail", response_model=OrderDetail)
 def get_order_detail(order_id: int, db: Session = Depends(get_db)):
-    row_dict = crud.get_order_detail(db, order_id).__dict__
-    row_dict['tags'] = [random.choice(list(Tags))]
-    return row_dict
+    row_dict = crud.get_order_detail(db, order_id)
+    (order, extra_info) = row_dict
+    extra_info.tags = extra_info.tags[1:-1].split('][')
+    return order.__dict__ | extra_info.__dict__
 
 
 @router.post("/all-orders/tracking", response_model=PageableOrdersSet)
@@ -57,12 +61,7 @@ def get_overdue(body: PageableOrderRequest, db: Session = Depends(get_db)):
     sorter = body.sorter
 
     result_set, total_records = crud.get_overdue_rush_local(db, page_index, page_size, filters=filters, sorter=sorter)
-    result_lst = []
-
-    for row in result_set:
-        row_dict = dict(row._mapping)
-        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
-        result_lst.append(row_dict)
+    result_lst = get_tags(result_set)
 
     pageable_set = {
         'page_index': page_index,
@@ -81,13 +80,12 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     sorter = body.sorter
 
     result_set, total_records = crud.get_all_cdl(db, page_index, page_size, filters=filters, sorter=sorter)
-    result_lst = []
-
-    for row in result_set:
-        row_dict = dict(row._mapping)
-        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
-        row_dict['cdl_item_status'] = [row_dict['cdl_item_status']]
-        result_lst.append(row_dict)
+    result_lst = get_tags(result_set)
+    for idx in range(len(result_lst)):
+        result_lst[idx]['id'] = result_lst[idx]['nyc_orders_id']
+        result_lst[idx]['title'] = result_lst[idx]['nyc_orders_title']
+        result_lst[idx]['order_number'] = result_lst[idx]['nyc_orders_order_number']
+        result_lst[idx]['cdl_item_status'] = [result_lst[idx]['cdl_item_status']]
 
     pageable_set = {
         'page_index': page_index,
@@ -98,9 +96,12 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return PageableCDLOrdersSet(**pageable_set)
 
 
-@router.patch("/general-order")
-def update_general_order(net_id: str, order: Order):
-    return True
+@router.get("/cdl-orders/detail", response_model=CDLOrderDetail, tags=["CDL Order"])
+def update_general_order(order_id: int, db: Session = Depends(get_db)):
+    (cdl, order, extra_info) = crud.get_cdl_detail(db, order_id)
+    cdl.cdl_item_status = [cdl.cdl_item_status]
+    extra_info.tags = extra_info.tags[1:-1].split('][')
+    return cdl.__dict__ | order.__dict__ | extra_info.__dict__
 
 
 @router.patch("/cdl-order", tags=["CDL Order"])
