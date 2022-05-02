@@ -30,7 +30,12 @@ def compile_filters(query, filters, table_mapping):
     return query
 
 
-def compile_sorters(query, sorter, target_table, backup_sort_key=None):
+def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
+    target_table = None
+    for table_name, columns in table_mapping.items():
+        if decamelize(sorter.col) in columns:
+            target_table = MAPPING[table_name]
+    target_table = MAPPING[table_mapping["default"]] if target_table is None else target_table
     col = getattr(target_table, decamelize(sorter.col))
     if sorter.desc:
         col = col.desc()
@@ -44,7 +49,7 @@ def compile(query, filters, table_mapping, sorter, default_key, start_idx, limit
     if filters:
         query = compile_filters(query, filters, table_mapping)
     if sorter:
-        query = compile_sorters(query, sorter, default_key)
+        query = compile_sorters(query, sorter, table_mapping, default_key)
     if start_idx:
         query = query.offset(start_idx * limit)
     total_records = query.count()
