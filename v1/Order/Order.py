@@ -101,7 +101,7 @@ def new_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
     return crud.new_cdl_order(db, body)
 
 
-@router.patch("/cdl-orders/", tags=["CDL Orders"], response_model=CDLOrderDetail)
+@router.patch("/cdl-orders/", tags=["CDL Orders"])
 def update_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
     return crud.update_cdl_order(db, body)
 
@@ -112,16 +112,11 @@ def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depe
 
 
 @router.get("/cdl-orders/detail", response_model=CDLOrderDetail, tags=["CDL Order"])
-def update_general_order(order_id: int, db: Session = Depends(get_db)):
-    (cdl, order, extra_info) = crud.get_cdl_detail(db, order_id)
+def get_cdl_detail(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
+    (cdl, order, extra_info) = crud.get_cdl_detail(db, book_id)
     cdl.cdl_item_status = [cdl.cdl_item_status]
     extra_info.tags = extra_info.tags[1:-1].split('][')
     return cdl.__dict__ | order.__dict__ | extra_info.__dict__
-
-
-@router.patch("/cdl-order", tags=["CDL Order"])
-async def update_cdl_order(net_id: str, cdl_order: CDLOrder):
-    return True
 
 
 @router.post("/add-note")

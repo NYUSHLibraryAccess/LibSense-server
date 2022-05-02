@@ -97,7 +97,7 @@ def del_cdl_order(db: Session, book_id):
 def update_cdl_order(db: Session, cdl: schema.CDLRequest):
     db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl.__dict__)
     db.commit()
-    return True
+    return {"msg": "Success"}
 
 
 def add_tracking_note(db: Session, note: schema.TimelineNote):
