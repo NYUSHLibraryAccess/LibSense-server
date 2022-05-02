@@ -194,8 +194,14 @@ class CDLOrder(Order):
 
 
 class CDLOrderDetail(CDLOrder):
+    order_purchased_date: Optional[date]
+    due_date: Optional[date]
+    physical_copy_status: Optional[str]
+    vendor_file_url: Optional[str]
     bobcat_permanent_link: Optional[str]
     file_password: Optional[str]
+    author: Optional[str]
+    pages: Optional[str]
 
 
 class PageableCDLOrdersSet(PageableResultSet):
