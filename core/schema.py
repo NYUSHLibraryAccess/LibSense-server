@@ -204,6 +204,24 @@ class CDLOrderDetail(CDLOrder):
     pages: Optional[str]
 
 
+class CDLRequest(CamelModel):
+    book_id: int
+    cdl_item_status: CDLStatus
+    order_request_date: Optional[date]
+    scanning_vendor_payment_date: Optional[date]
+    pdf_delivery_date: Optional[date]
+    back_to_karms_date: Optional[Union[date, str]]
+    circ_pdf_url: Optional[str]
+    order_purchased_date: Optional[date]
+    due_date: Optional[date]
+    physical_copy_status: Optional[str]
+    vendor_file_url: Optional[str]
+    bobcat_permanent_link: Optional[str]
+    file_password: Optional[str]
+    author: Optional[str]
+    pages: Optional[str]
+
+
 class PageableCDLOrdersSet(PageableResultSet):
     result: List[CDLOrder]
 

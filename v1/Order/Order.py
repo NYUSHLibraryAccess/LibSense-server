@@ -1,6 +1,6 @@
 import random
 from core.schema import *
-from fastapi import Depends, HTTPException, APIRouter, Body, Form
+from fastapi import Depends, HTTPException, APIRouter, Body, Form, Query
 from datetime import date
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -94,6 +94,21 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
         'result': result_lst
     }
     return PageableCDLOrdersSet(**pageable_set)
+
+
+@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"])
+def new_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
+    return crud.new_cdl_order(db, body)
+
+
+@router.patch("/cdl-orders/", tags=["CDL Orders"], response_model=CDLOrderDetail)
+def update_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
+    return crud.update_cdl_order(db, body)
+
+
+@router.delete("/cdl-orders/", tags=["CDL Orders"])
+def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
+    return crud.del_cdl_order(db, book_id)
 
 
 @router.get("/cdl-orders/detail", response_model=CDLOrderDetail, tags=["CDL Order"])

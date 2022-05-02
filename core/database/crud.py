@@ -76,6 +76,30 @@ def get_cdl_detail(db: Session, order_id: int):
     return query
 
 
+def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
+    cdl = CDLOrder(**cdl_request.__dict__)
+    db.add(cdl)
+    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id).update({'tags': ExtraInfo.tags + '[CDL]'})
+    db.commit()
+    db.refresh(cdl)
+    return cdl
+
+
+def del_cdl_order(db: Session, book_id):
+    query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
+    db.delete(query)
+    sql = text("UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', '') WHERE id = %d;" % book_id)
+    db.execute(sql)
+    db.commit()
+    return {"msg": "Success"}
+
+
+def update_cdl_order(db: Session, cdl: schema.CDLRequest):
+    db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl.__dict__)
+    db.commit()
+    return True
+
+
 def add_tracking_note(db: Session, note: schema.TimelineNote):
     new_note = TrackingNote(**note.__dict__)
     db.add(new_note)
@@ -127,6 +151,7 @@ def delete_vendor(db: Session, vendor_code):
     vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
     db.delete(vendor)
     db.commit()
+    return True
 
 
 def get_vendor_meta(db: Session):
