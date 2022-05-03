@@ -22,7 +22,7 @@ async def get_all_vendors(db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=Vendor)
-async def get_vendor(vendor_code: str, db: Session = Depends(get_db)):
+async def get_vendor(vendor_code: str = Query(None, alias="vendorCode"), db: Session = Depends(get_db)):
     return crud.get_vendor(db, vendor_code)
 
 

@@ -46,8 +46,8 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/all-orders/detail", response_model=OrderDetail)
-def get_order_detail(order_id: int, db: Session = Depends(get_db)):
-    row_dict = crud.get_order_detail(db, order_id)
+def get_order_detail(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
+    row_dict = crud.get_order_detail(db, book_id)
     (order, extra_info) = row_dict
     extra_info.tags = extra_info.tags[1:-1].split('][')
     return order.__dict__ | extra_info.__dict__
@@ -72,7 +72,7 @@ def get_overdue(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return PageableOrdersSet(**pageable_set)
 
 
-@router.post("/cdl-orders", response_model=PageableCDLOrdersSet, tags=["CDL Order"])
+@router.post("/cdl-orders", response_model=PageableCDLOrdersSet, tags=["CDL Orders"])
 def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
     page_size = body.page_size
@@ -108,7 +108,7 @@ def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depe
     return crud.del_cdl_order(db, book_id)
 
 
-@router.get("/cdl-orders/detail", response_model=CDLOrderDetail, tags=["CDL Order"])
+@router.get("/cdl-orders/detail", response_model=CDLOrderDetail, tags=["CDL Orders"])
 def get_cdl_detail(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     (cdl, order, extra_info) = crud.get_cdl_detail(db, book_id)
     cdl.cdl_item_status = [cdl.cdl_item_status]

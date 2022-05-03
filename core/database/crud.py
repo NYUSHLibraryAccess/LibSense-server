@@ -49,8 +49,8 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
-def get_order_detail(db: Session, order_id: int):
-    query = db.query(Order, ExtraInfo).join(ExtraInfo, Order.id == ExtraInfo.id).filter(Order.id == order_id).first()
+def get_order_detail(db: Session, book_id: int):
+    query = db.query(Order, ExtraInfo).join(ExtraInfo, Order.id == ExtraInfo.id).filter(Order.id == book_id).first()
     return query
 
 
