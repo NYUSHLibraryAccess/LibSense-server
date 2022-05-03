@@ -89,6 +89,7 @@ class ExtraInfo(Base):
     tags = Column(String)
     override_reminder_time = Column(Integer)
     reminder_receiver = Column(String)
+    cdl_flag = Column(Integer)
 
     book = relationship("Order", back_populates="extra_info")
 

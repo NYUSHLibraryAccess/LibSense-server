@@ -51,7 +51,8 @@ or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), crea
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
     args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code,
+            ExtraInfo.tags, ExtraInfo.cdl_flag]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -70,7 +71,8 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
     args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
             CDLOrder.pdf_delivery_date, CDLOrder.circ_pdf_url, CDLOrder.back_to_karms_date,
             Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code,
+            ExtraInfo.tags, ExtraInfo.cdl_flag]
     query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).join(ExtraInfo, ExtraInfo.id == Order.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -91,7 +93,8 @@ def get_cdl_detail(db: Session, order_id: int):
 def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
     cdl = CDLOrder(**cdl_request.__dict__)
     db.add(cdl)
-    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id).update({'tags': ExtraInfo.tags + '[CDL]'})
+    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id)\
+        .update({'tags': ExtraInfo.tags + '[CDL]', 'cdl_flag': 1})
     db.commit()
     db.refresh(cdl)
     return cdl
@@ -100,7 +103,7 @@ def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
 def del_cdl_order(db: Session, book_id):
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
     db.delete(query)
-    sql = text("UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', '') WHERE id = %d;" % book_id)
+    sql = text("UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;" % book_id)
     db.execute(sql)
     db.commit()
     return {"msg": "Success"}

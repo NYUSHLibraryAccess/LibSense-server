@@ -23,6 +23,8 @@ def get_tags(result_set):
     for row in result_set:
         row_dict = dict(row._mapping)
         row_dict['tags'] = Tags.split_tags(row_dict['tags'])
+        if row_dict.get("cdl_flag") == 1 and "CDL" not in row_dict['tags']:
+            row_dict['tags'].append("CDL")
         result_lst.append(row_dict)
     return result_lst
 
@@ -49,7 +51,9 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
 def get_order_detail(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     row_dict = crud.get_order_detail(db, book_id)
     (order, extra_info) = row_dict
-    extra_info.tags = extra_info.tags[1:-1].split('][')
+    extra_info.tags = Tags.split_tags(extra_info.tags)
+    if extra_info.cdl_flag == 1 and "CDL" not in extra_info.tags:
+        extra_info.tags.append("CDL")
     return order.__dict__ | extra_info.__dict__
 
 
@@ -112,7 +116,9 @@ def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depe
 def get_cdl_detail(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     (cdl, order, extra_info) = crud.get_cdl_detail(db, book_id)
     cdl.cdl_item_status = [cdl.cdl_item_status]
-    extra_info.tags = extra_info.tags[1:-1].split('][')
+    extra_info.tags = Tags.split_tags(extra_info.tags)
+    if extra_info.cdl_flag == 1 and "CDL" not in extra_info.tags:
+        extra_info.tags.append("CDL")
     return cdl.__dict__ | order.__dict__ | extra_info.__dict__
 
 
