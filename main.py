@@ -5,11 +5,20 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 import uvicorn
+from redis import Redis
+from starlette_session import SessionMiddleware
+from starlette_session.backends import BackendType
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.logger import CustomizeLogger
 from v1 import api
+
+with open("configs/config.json") as cfg:
+    json_cfg = json.load(cfg)
+    SESSION_SECRET = json_cfg['session_key']
+    redis_cfg = json_cfg['redis_config']
 
 ENV = os.getenv("LIBSENSE_ENV", "World")
 logger = CustomizeLogger.make_logger(ENV)
@@ -31,6 +40,15 @@ if ENV == "TEST":
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+redis_client = Redis(host=redis_cfg["host"], port=redis_cfg["port"], password=redis_cfg["password"])
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    cookie_name="JSESSIONID",
+    backend_type=BackendType.redis,
+    backend_client=redis_client
+)
 
 app.include_router(api.router)
 

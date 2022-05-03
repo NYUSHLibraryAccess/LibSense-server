@@ -93,6 +93,13 @@ class ExtraInfo(Base):
     book = relationship("Order", back_populates="extra_info")
 
 
+class User(Base):
+    __tablename__ = "user"
+    username = Column(String, primary_key=True, index=True, unique=True)
+    password = Column(String)
+    role = Column(String)
+
+
 MAPPING = {
     "Order": Order,
     "CDLOrder": CDLOrder,

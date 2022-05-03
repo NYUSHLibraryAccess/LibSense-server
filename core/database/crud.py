@@ -5,6 +5,18 @@ from core.database.model import *
 from core.database.utils import compile, compile_filters, compile_sorters
 
 
+def login(db: Session, username, password):
+    return db.query(User).filter(User.username == username).filter(User.password == password).first()
+
+
+def add_user(db: Session, new_user: schema.NewSystemUser):
+    user = User(**new_user.__dict__)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
     args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]

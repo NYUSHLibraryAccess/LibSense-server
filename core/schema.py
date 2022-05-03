@@ -100,8 +100,8 @@ class TimelineNote(CamelModel):
 
 
 class EnumRole(str, Enum):
-    admin = 'admin'
-    user = 'user'
+    SYS_ADMIN = 'System Admin'
+    USER = 'User'
 
 
 class User(CamelModel):
@@ -261,3 +261,18 @@ class Overview(CamelModel):
     min_cdl: int
     min_rush_nyc: int
     min_rush_local: int
+
+
+class SystemUser(CamelModel):
+    username: str
+    role: EnumRole
+
+
+class LoginRequest(CamelModel):
+    username: str
+    password: str
+
+
+class NewSystemUser(SystemUser):
+    password: str
+
