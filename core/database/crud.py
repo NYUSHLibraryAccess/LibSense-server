@@ -232,6 +232,10 @@ def get_ips_meta(db: Session):
     return db.query(Order.ips_code).group_by(Order.ips_code).all()
 
 
+def get_physical_copy_meta(db: Session):
+    return db.query(CDLOrder.physical_copy_status).group_by(CDLOrder.physical_copy_status).all()
+
+
 def get_oldest_date(db: Session):
     return db.execute("SELECT MIN(created_date) FROM nyc_orders;").first()[0]
 

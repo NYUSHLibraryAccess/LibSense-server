@@ -61,6 +61,7 @@ async def get_metadata(db: Session = Depends(get_db)):
     material_type = crud.get_material_type_meta(db)
     cdl_tags = [i for i in schema.CDLStatus]
     supported_report = [r for r in schema.ReportTypes]
+    physical_copy_status = crud.get_physical_copy_meta(db)
 
     return schema.MetaData(
         ips_code=[i[0] for i in ips],
@@ -70,5 +71,6 @@ async def get_metadata(db: Session = Depends(get_db)):
         material=[m[0] for m in material],
         material_type=[mt[0] for mt in material_type],
         cdl_tags=cdl_tags,
-        supported_report=supported_report
+        supported_report=supported_report,
+        physical_copy_status=[p[0] for p in physical_copy_status]
     )
