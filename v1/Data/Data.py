@@ -16,7 +16,7 @@ async def valid_content_length(content_length: int = Header(..., lt=8000000)):
     return content_length
 
 
-@router.post("/upload")
+@router.post("/upload", response_model=schema.BasicResponse)
 async def upload_file(
         db: Session = Depends(get_db),
         file: UploadFile = File(...),
@@ -48,7 +48,7 @@ async def upload_file(
             detail="There was an error processing your file",
         )
 
-    return {"message": msg}
+    return {"msg": msg}
 
 
 @router.get("/metadata", response_model=schema.MetaData)

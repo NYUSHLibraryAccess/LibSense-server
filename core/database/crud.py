@@ -21,7 +21,7 @@ def delete_user(db: Session, username):
     user = db.query(User).filter(User.username == username)
     db.delete(user)
     db.commit()
-    return {"msg": "Success"}
+    return schema.BasicResponse(msg="Success")
 
 
 def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None,
@@ -160,13 +160,13 @@ def del_cdl_order(db: Session, book_id):
     sql = text("UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;" % book_id)
     db.execute(sql)
     db.commit()
-    return {"msg": "Success"}
+    return schema.BasicResponse(msg="Success")
 
 
 def update_cdl_order(db: Session, cdl: schema.CDLRequest):
     db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl.__dict__)
     db.commit()
-    return {"msg": "Success"}
+    return schema.BasicResponse(msg="Success")
 
 
 def add_tracking_note(db: Session, note: schema.TimelineNote):
@@ -206,6 +206,7 @@ def get_vendor(db: Session, code: str):
 def update_vendor(db: Session, vendor: schema.Vendor):
     db.query(Vendor).filter(Vendor.vendor_code == vendor.vendor_code).update(vendor.__dict__)
     db.commit()
+    return schema.BasicResponse(msg="Success")
 
 
 def add_vendor(db: Session, vendor: schema.Vendor):
@@ -220,7 +221,7 @@ def delete_vendor(db: Session, vendor_code):
     vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
     db.delete(vendor)
     db.commit()
-    return True
+    return schema.BasicResponse(msg="Success")
 
 
 def get_vendor_meta(db: Session):

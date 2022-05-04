@@ -1,4 +1,4 @@
-from core.schema import Vendor
+from core.schema import Vendor, BasicResponse
 from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -23,13 +23,11 @@ async def new_vendor(vendor: Vendor, db: Session = Depends(get_db)):
     return crud.add_vendor(db, vendor)
 
 
-@router.patch("/")
+@router.patch("/", response_model=BasicResponse)
 async def update_vendor(vendor: Vendor, db: Session = Depends(get_db)):
-    crud.update_vendor(db, vendor)
-    return {"msg": "Success"}
+    return crud.update_vendor(db, vendor)
 
 
-@router.delete("/")
+@router.delete("/", response_model=BasicResponse)
 async def delete_vendor(vendor_code: str = Query(None, alias="vendorCode"), db: Session = Depends(get_db)):
-    crud.delete_vendor(db, vendor_code)
-    return {"msg": "Success"}
+    return crud.delete_vendor(db, vendor_code)

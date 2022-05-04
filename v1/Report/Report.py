@@ -13,13 +13,13 @@ from v1.Order.Order import get_tags
 router = APIRouter(prefix="/report", tags=["Report"], dependencies=[Depends(validate_auth)])
 
 
-@router.post("/send-report", tags=["Report"])
-def send_report(payload: dict = Body(...), db: Session = Depends(get_db)):
+@router.post("/send-report", response_model=BasicResponse)
+def send_report(payload: SendReportRequest, db: Session = Depends(get_db)):
     service = LibSenseEmail()
     today = date.today().strftime("%Y-%m-%d")
     attachments = {}
     count = {}
-    for rt in payload["reportTypes"]:
+    for rt in payload.report_type:
         if rt == "RushLocal":
             query = crud.get_overdue_rush_local(db, 0, -1, for_pandas=True)
             df = pd.read_sql(query, db.get_bind())
@@ -42,7 +42,7 @@ def send_report(payload: dict = Body(...), db: Session = Depends(get_db)):
             df.to_csv(file_path, index=False)
             attachments[rt] = file_path
 
-    service.send_message(payload["email"], payload["username"], count, attachments)
+    service.send_message(payload.email, payload.username, count, attachments)
     
     files = glob.glob("temp/*")
     for f in files:

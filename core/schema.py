@@ -61,6 +61,15 @@ class ReportTypes(str, Enum):
     SHANGHAI_ORDER = "ShanghaiOrder"
 
 
+class EnumRole(str, Enum):
+    SYS_ADMIN = 'System Admin'
+    USER = 'User'
+
+
+class BasicResponse(CamelModel):
+    msg: Optional[str] = "Success"
+
+
 class FieldFilter(CamelModel):
     op: FilterOperators
     col: str
@@ -103,11 +112,6 @@ class TimelineNote(CamelModel):
 
     class Config:
         orm_mode = True
-
-
-class EnumRole(str, Enum):
-    SYS_ADMIN = 'System Admin'
-    USER = 'User'
 
 
 class User(CamelModel):
@@ -283,4 +287,10 @@ class LoginRequest(CamelModel):
 
 class NewSystemUser(SystemUser):
     password: str
+
+
+class SendReportRequest(CamelModel):
+    username: str
+    email: str
+    report_type: List[ReportTypes]
 
