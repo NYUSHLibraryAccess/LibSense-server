@@ -9,6 +9,15 @@ def to_camel(string):
     return camelize(string)
 
 
+class CamelModel(BaseModel):
+    class Config:
+        orm_mode = True
+        use_enum_values = True
+        allow_populate_by_alias = True
+        alias_generator = to_camel
+        allow_population_by_field_name = True
+
+
 class Tags(str, Enum):
     CDL = 'CDL'
     LOCAL = 'Local'
@@ -38,21 +47,18 @@ class CDLStatus(str, Enum):
     ON_LOAN = "On Loan"
 
 
-class CamelModel(BaseModel):
-    class Config:
-        orm_mode = True
-        use_enum_values = True
-        allow_populate_by_alias = True
-        alias_generator = to_camel
-        allow_population_by_field_name = True
-
-
 class FilterOperators(str, Enum):
     IN = 'in'
     LIKE = 'like'
     BETWEEN = 'between'
     GREATER = 'greater'
     SMALLER = 'smaller'
+
+
+class ReportTypes(str, Enum):
+    RUSH_LOCAL = "RushLocal",
+    CDL_ORDER = "CDLOrder"
+    SHANGHAI_ORDER = "ShanghaiOrder"
 
 
 class FieldFilter(CamelModel):
@@ -193,7 +199,7 @@ class CDLOrder(Order):
     circ_pdf_url: Optional[str]
 
 
-class CDLOrderDetail(CDLOrder):
+class CDLOrderDetail(CDLOrder, OrderDetail):
     order_purchased_date: Optional[date]
     due_date: Optional[date]
     physical_copy_status: Optional[str]
@@ -242,22 +248,24 @@ class MetaData(CamelModel):
     material: Optional[List[Union[str, None]]]
     material_type: Optional[List[Union[str, None]]]
     cdl_tags: Optional[List[Union[str, None]]]
+    supported_report: Optional[List[Union[str, None]]]
 
 
 class Overview(CamelModel):
     local_rush_pending: int
+    cdl_pending: int
 
-    avg_cdl_scan: int = 0
+    avg_cdl_scan: int
     avg_cdl: int
     avg_rush_nyc: int
     avg_rush_local: int
 
-    max_cdl_scan: int = 0
+    max_cdl_scan: int
     max_cdl: int
     max_rush_nyc: int
     max_rush_local: int
 
-    min_cdl_scan: int = 0
+    min_cdl_scan: int
     min_cdl: int
     min_rush_nyc: int
     min_rush_local: int

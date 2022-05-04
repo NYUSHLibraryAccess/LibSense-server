@@ -1,21 +1,10 @@
-import random
 from core.schema import *
-from fastapi import Depends, HTTPException, APIRouter, Body, Form, Query
-from datetime import date
-from typing import Optional
+from fastapi import Depends, APIRouter, Form, Query
 from sqlalchemy.orm import Session
-from core.database import crud, model
-from core.database.database import SessionLocal, engine
+from core.database import crud
+from core.utils.dependencies import get_db, validate_auth
 
-router = APIRouter(prefix="/orders", tags=["Order"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(prefix="/orders", tags=["Order"], dependencies=[Depends(validate_auth)])
 
 
 def get_tags(result_set):
@@ -55,25 +44,6 @@ def get_order_detail(book_id: int = Query(None, alias="bookId"), db: Session = D
     if extra_info.cdl_flag == 1 and "CDL" not in extra_info.tags:
         extra_info.tags.append("CDL")
     return order.__dict__ | extra_info.__dict__
-
-
-@router.post("/all-orders/tracking", response_model=PageableOrdersSet)
-def get_overdue(body: PageableOrderRequest, db: Session = Depends(get_db)):
-    page_index = body.page_index
-    page_size = body.page_size
-    filters = body.filters
-    sorter = body.sorter
-
-    result_set, total_records = crud.get_overdue_rush_local(db, page_index, page_size, filters=filters, sorter=sorter)
-    result_lst = get_tags(result_set)
-
-    pageable_set = {
-        'page_index': page_index,
-        'page_limit': page_size,
-        'total_records': total_records,
-        'result': result_lst
-    }
-    return PageableOrdersSet(**pageable_set)
 
 
 @router.post("/cdl-orders", response_model=PageableCDLOrdersSet, tags=["CDL Orders"])

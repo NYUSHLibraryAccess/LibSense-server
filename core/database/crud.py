@@ -17,35 +17,89 @@ def add_user(db: Session, new_user: schema.NewSystemUser):
     return user
 
 
-def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
-    args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
+def delete_user(db: Session, username):
+    user = db.query(User).filter(User.username == username)
+    db.delete(user)
+    db.commit()
+    return {"msg": "Success"}
+
+
+def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None,
+                           for_pandas=False):
+    if filters is None:
+        filters = []
+    args = [Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
             Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id) \
         .join(Vendor, Order.vendor_code == Vendor.vendor_code) \
         .filter(Order.arrival_date == None)
-    if filters:
-        table_mapping = {
-            "ExtraInfo": ["tags"],
-            "default": "Order"
-        }
-        query = compile_filters(query, filters, table_mapping)
-    if sorter:
-        query = compile_sorters(query, sorter, table_mapping, Order.id)
+    table_mapping = {
+        "ExtraInfo": ["tags"],
+        "default": "Order"
+    }
 
-    suffix = """extra_info.tags like '%[Rush]%' and extra_info.tags like '%[Local]%'
-and (((override_reminder_time is null) and (DATEDIFF(current_timestamp(), created_date) > notify_in))
-or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)))
-            """
-    query = query.filter(text(suffix.replace("\n", " ")))
+    suffix = text("""extra_info.tags like '%[Rush]%' and extra_info.tags like '%[Local]%'
+    and (((override_reminder_time is null) and (DATEDIFF(current_timestamp(), created_date) > notify_in))
+    or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)))
+                """.replace("\n", " "))
 
-    if start_idx:
-        query = query.offset(start_idx * limit)
-    total_records = query.count()
-    if limit != -1:
-        query = query.limit(limit)
+    fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
+    filters.extend(fixed_filters)
+
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
 
     if for_pandas:
         return query.statement
+
+    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+
+
+def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
+    args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
+            CDLOrder.pdf_delivery_date, CDLOrder.back_to_karms_date,
+            Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code]
+    table_mapping = {
+        "CDLOrder": [
+            "cdl_item_status", "order_request_date", "scanning_vendor_payment_date",
+            "pdf_delivery_date", "back_to_karms_date"
+        ],
+        "default": "Order"
+    }
+    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).filter(CDLOrder.pdf_delivery_date == None)
+    suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30""")
+
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+
+    if for_pandas:
+        return query.statement
+
+    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+
+
+def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
+    if filters is None:
+        filters = []
+    args = [Order.order_number, Order.barcode, Order.title, Order.created_date, Order.arrival_date, Order.arrival_status,
+            Order.arrival_operator, Order.order_status, Order.order_status_update_date, Order.ips_code, Order.ips,
+            Order.ips_update_date, Order.ips_code_operator, Order.material, Order.material_type, Order.vendor_code,
+            Order.library_note, Order.invoice_status, Order.collection, Order.item_status, Order.total_price, Order.bsn,
+            Order.sublibrary]
+    query = db.query(*args)
+    table_mapping = {"default": "Order"}
+    suffix = text("""datediff(current_timestamp(), created_date) <= 1095""")
+    fixed_filters = [
+        schema.FieldFilter(op="like", col="sublibrary", val="NSHNG"),
+        schema.FieldFilter(op="like", col="order_type", val="M")
+    ]
+    fixed_sorter = schema.SortCol(col="created_date", desc=True)
+    filters.extend(fixed_filters)
+    sorter = sorter or fixed_sorter
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+
+    if for_pandas:
+        return query.statement
+
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
@@ -85,7 +139,7 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
 
 
 def get_cdl_detail(db: Session, order_id: int):
-    query = db.query(CDLOrder, Order, ExtraInfo).join(Order, CDLOrder.book_id == Order.id)\
+    query = db.query(CDLOrder, Order, ExtraInfo).join(Order, CDLOrder.book_id == Order.id) \
         .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.book_id == order_id).first()
     return query
 
@@ -93,7 +147,7 @@ def get_cdl_detail(db: Session, order_id: int):
 def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
     cdl = CDLOrder(**cdl_request.__dict__)
     db.add(cdl)
-    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id)\
+    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id) \
         .update({'tags': ExtraInfo.tags + '[CDL]', 'cdl_flag': 1})
     db.commit()
     db.refresh(cdl)
@@ -206,19 +260,29 @@ def get_local_rush_pending(db: Session):
     return db.execute(query.replace("\n", " ")).first()
 
 
+def get_cdl_pending(db: Session):
+    cdl = """
+        select count(book_id)
+        from cdl_info
+        where pdf_delivery_date is null 
+        and datediff(current_timestamp(), order_request_date) > 30;
+    """
+    return db.execute(cdl.replace("\n", " ")).first()
+
+
 def get_average_days(db: Session):
     cdl = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
-        max(floor(datediff(arrival_date, created_date))) as max,
-        min(floor(datediff(arrival_date, created_date))) as min
+        floor(max(datediff(arrival_date, created_date))) as max,
+        floor(min(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
         and tags like '%%[CDL]%%';
     """
     rush_nyc = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
-        max(floor(datediff(arrival_date, created_date))) as max,
-        min(floor(datediff(arrival_date, created_date))) as min
+        floor(max(datediff(arrival_date, created_date))) as max,
+        floor(min(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
         and tags like '%%[Rush]%%'
@@ -234,8 +298,17 @@ def get_average_days(db: Session):
         and tags like '%%[Local]%%';
     """
 
+    cdl_delivery = """
+        select floor(avg(datediff(pdf_delivery_date, order_request_date))) as avg,
+        floor(max(datediff(pdf_delivery_date, order_request_date))) as max,
+        floor(min(datediff(pdf_delivery_date, order_request_date))) as min
+        from cdl_info
+        where pdf_delivery_date is not null and order_request_date is not null;
+    """
+
     cdl_rs = db.execute(cdl.replace("\n", " ")).first()
     rush_nyc_rs = db.execute(rush_nyc.replace("\n", " ")).first()
     rush_local_rs = db.execute(rush_local.replace("\n", " ")).first()
+    cdl_scan_rs = db.execute(cdl_delivery.replace("\n", "")).first()
 
-    return cdl_rs, rush_nyc_rs, rush_local_rs
+    return cdl_rs, rush_nyc_rs, rush_local_rs, cdl_scan_rs

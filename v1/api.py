@@ -36,9 +36,11 @@ def get_root():
 @router.get("/overview", tags=["Overview"], response_model=schema.Overview)
 def get_overview(db: Session = Depends(get_db)):
     local_rush_pending = crud.get_local_rush_pending(db)[0]
-    cdl_rs, rush_nyr_rs, rush_local_rs = crud.get_average_days(db)
+    cdl_pending = crud.get_cdl_pending(db)[0]
+    cdl_rs, rush_nyr_rs, rush_local_rs, cdl_scan_rs = crud.get_average_days(db)
     return schema.Overview(
         local_rush_pending=local_rush_pending,
+        cdl_pending=cdl_pending,
 
         avg_cdl=cdl_rs["avg"],
         avg_rush_nyc=rush_nyr_rs["avg"],
@@ -51,4 +53,8 @@ def get_overview(db: Session = Depends(get_db)):
         max_cdl=cdl_rs["max"],
         max_rush_nyc=rush_nyr_rs["max"],
         max_rush_local=rush_local_rs["max"],
+
+        avg_cdl_scan=cdl_scan_rs["avg"],
+        max_cdl_scan=cdl_scan_rs["max"],
+        min_cdl_scan=cdl_scan_rs["min"],
     )
