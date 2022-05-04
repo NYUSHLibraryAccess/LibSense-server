@@ -17,6 +17,10 @@ def add_user(db: Session, new_user: schema.NewSystemUser):
     return user
 
 
+def all_users(db: Session):
+    return db.query(User.username, User.role).all()
+
+
 def delete_user(db: Session, username):
     user = db.query(User).filter(User.username == username)
     db.delete(user)

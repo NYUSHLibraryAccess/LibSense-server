@@ -1,7 +1,6 @@
 import os
 import json
 from datetime import date
-from tkinter import E
 # Gmail API utils
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
