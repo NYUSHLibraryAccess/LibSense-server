@@ -1,4 +1,4 @@
-from fastapi import status, APIRouter, Request, Body, Depends, HTTPException
+from fastapi import status, APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
 from core.utils.dependencies import get_db, validate_auth
@@ -8,7 +8,7 @@ router = APIRouter(tags=["User/Authentication"])
 
 
 @router.post("/login", response_model=schema.SystemUser)
-def login(request: Request, payload: schema.LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, response: Response, payload: schema.LoginRequest, db: Session = Depends(get_db)):
     user = crud.login(db, payload.username, payload.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong username or password.")
