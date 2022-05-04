@@ -125,7 +125,7 @@ class LibSenseEmail():
         for k, v in count.items():
             body += BODY_TEMPLATE % (k, v, self.date)
         message.attach(MIMEText(TRACKING_EMAIL_TEMPLATE % (nickname, body)))
-        for filename in attachments:
+        for key, filename in attachments.items():
             self.add_attachment(message, filename)
         return {'raw': urlsafe_b64encode(message.as_bytes()).decode()}
 
