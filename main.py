@@ -46,6 +46,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
     cookie_name="JSESSIONID",
+    max_age=86400,
     backend_type=BackendType.redis,
     backend_client=redis_client
 )

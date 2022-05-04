@@ -30,15 +30,20 @@ Hi %s,
 
 Here are the information about the orders that needs to be tracked:
 
-Number of Orders: %d
-Generated Date: %s
-System Filter(if any): %s
+%s
 
-The detailed informaiton about each order is attached to this email.
+The detailed order report is attached to this email.
 
 ------------------------------------------------------------------------
 LibSense
 
+"""
+BODY_TEMPLATE = """
+---------------------
+Report Type: %s
+Number of Orders: %d
+Generated Date: %s
+---------------------
 """
 
 
@@ -112,27 +117,23 @@ class LibSenseEmail():
         msg.add_header('Content-Disposition', 'attachment;', filename=filename)
         message.attach(msg)
 
-    def build_message(self, destination, nickname, filter, count, attachments=[]):
-        if not attachments: # no attachments given
-            message = MIMEText(TRACKING_EMAIL_TEMPLATE % (nickname, count, self.date, filter))
-            message['to'] = destination
-            message['from'] = self._email
-            message['subject'] = TRACKING_EMAIL_TITLE % self.date
-        else:
-            message = MIMEMultipart()
-            message['to'] = destination
-            message['from'] = self._email
-            message['subject'] = TRACKING_EMAIL_TITLE % self.date
-            message.attach(MIMEText(TRACKING_EMAIL_TEMPLATE % (nickname, count, self.date, filter)))
-            for filename in attachments:
-                self.add_attachment(message, filename)
+    def build_message(self, destination, nickname, count, attachments={}):
+        message = MIMEMultipart()
+        message['to'] = destination
+        message['from'] = self._email
+        message['subject'] = TRACKING_EMAIL_TITLE % self.date
+        body = ""
+        for k, v in count.items():
+            body += BODY_TEMPLATE % (k, v, self.date)
+        message.attach(MIMEText(TRACKING_EMAIL_TEMPLATE % (nickname, body)))
+        for filename in attachments:
+            self.add_attachment(message, filename)
         return {'raw': urlsafe_b64encode(message.as_bytes()).decode()}
 
-    def send_message(self, destination, nickname, filter, count, attachments=[]):
+    def send_message(self, destination, nickname, count, attachments):
         return self.service.users().messages().send(
             userId="me",
-            body=self.build_message(destination, nickname, filter, count, attachments))\
-            .execute()
+            body=self.build_message(destination, nickname, count, attachments)).execute()
     
     def flush_date(self):
         self.date = date.today().strftime("%Y-%m-%d")

@@ -19,8 +19,13 @@ def compile_filters(query, filters, table_mapping):
                     or_flags.append(target_table.tags.like('%[' + t + ']%'))
                 sql_filters.append(or_(*or_flags))
             else:
-                sql_filters.append(getattr(target_table, decamelize(f.col)).in_(f.val))
-
+                in_filters = [getattr(target_table, decamelize(f.col)).in_(f.val)]
+                if None in f.val:
+                    in_filters.append((getattr(target_table, decamelize(f.col)) == None))
+                    sql_filters.append(or_(*in_filters))
+                else:
+                    sql_filters.append(*in_filters)
+                
         elif f.op == schema.FilterOperators.LIKE:
             sql_filters.append(getattr(target_table, decamelize(f.col)).like('%' + f.val + '%'))
 
@@ -48,15 +53,17 @@ def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
     return query.order_by(col, backup_sort_key)
 
 
-def compile(query, filters, table_mapping, sorter, default_key, start_idx, limit):
-    if filters:
+def compile(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None):
+    if filters and table_mapping:
         query = compile_filters(query, filters, table_mapping)
-    if sorter:
+    if sorter and table_mapping:
         query = compile_sorters(query, sorter, table_mapping, default_key)
+    if suffix is not None:
+        query = query.filter(suffix)
     if start_idx:
         query = query.offset(start_idx * limit)
     total_records = query.count()
-    if limit:
+    if limit and limit != -1:
         query = query.limit(limit)
     return query, total_records
 

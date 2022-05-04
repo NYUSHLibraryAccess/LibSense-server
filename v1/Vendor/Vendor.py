@@ -1,19 +1,11 @@
 from core.schema import Vendor
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from core.database import crud
-from core.database.database import SessionLocal
+from core.utils.dependencies import get_db, validate_auth
 
-router = APIRouter(prefix="/vendor", tags=["Vendor"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(prefix="/vendor", tags=["Vendor"], dependencies=[Depends(validate_auth)])
 
 
 @router.get("/all-vendors", response_model=List[Vendor])

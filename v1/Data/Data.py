@@ -1,23 +1,15 @@
 import aiofiles
 from core.utils import Data
 from starlette import status
-from fastapi import APIRouter, FastAPI, File, Header, Depends, BackgroundTasks, UploadFile, HTTPException
+from fastapi import APIRouter, File, Header, Depends, UploadFile, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
-from core.database import crud, model
-from core.database.database import SessionLocal, engine
+from core.database import crud
 from loguru import logger
-import core.schema as schema
+from core import schema
+from core.utils.dependencies import get_db, validate_auth
 
-router = APIRouter(prefix='/data', tags=["Data"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(prefix='/data', tags=["Data"], dependencies=[Depends(validate_auth)])
 
 
 async def valid_content_length(content_length: int = Header(..., lt=8000000)):
@@ -26,7 +18,6 @@ async def valid_content_length(content_length: int = Header(..., lt=8000000)):
 
 @router.post("/upload")
 async def upload_file(
-        background_tasks: BackgroundTasks,
         db: Session = Depends(get_db),
         file: UploadFile = File(...),
         file_size: int = Depends(valid_content_length)):
@@ -47,7 +38,6 @@ async def upload_file(
                     )
                 await out_file.write(content)  # async write chunk
         msg = f"Successfully updated database with {file.filename}."
-        # background_tasks.add_task(Data.data_ingestion, db, output_file)
         await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
         await run_in_threadpool(lambda: Data.flush_tags(db))
 
@@ -70,6 +60,7 @@ async def get_metadata(db: Session = Depends(get_db)):
     material = crud.get_material_meta(db)
     material_type = crud.get_material_type_meta(db)
     cdl_tags = [i for i in schema.CDLStatus]
+    supported_report = [r for r in schema.ReportTypes]
 
     return schema.MetaData(
         ips_code=[i[0] for i in ips],
@@ -78,5 +69,6 @@ async def get_metadata(db: Session = Depends(get_db)):
         oldest_date=oldest_date,
         material=[m[0] for m in material],
         material_type=[mt[0] for mt in material_type],
-        cdl_tags=cdl_tags
+        cdl_tags=cdl_tags,
+        supported_report=supported_report
     )
