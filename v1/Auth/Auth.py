@@ -8,8 +8,8 @@ router = APIRouter(tags=["User/Authentication"])
 
 
 @router.post("/login", response_model=schema.SystemUser)
-def login(request: Request, db: Session = Depends(get_db), payload=Body(...)):
-    user = crud.login(db, payload["username"], payload["password"])
+def login(request: Request, payload: schema.LoginRequest, db: Session = Depends(get_db)):
+    user = crud.login(db, payload.username, payload.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong username or password.")
     user_dict = {"username": user.username, "role": user.role}
@@ -18,7 +18,7 @@ def login(request: Request, db: Session = Depends(get_db), payload=Body(...)):
     return schema.SystemUser(**user_dict)
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=schema.BasicResponse)
 def logout(request: Request):
     request.session.clear()
     return {"msg": "Successfully logged out"}
@@ -33,7 +33,6 @@ def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depe
         return crud.add_user(db, payload)
 
 
-@router.delete("/delete_user", dependencies=[Depends(validate_auth)])
+@router.delete("/delete_user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
 def del_user(username: str, db: Session = Depends(get_db)):
     return crud.delete_user(db, username)
-

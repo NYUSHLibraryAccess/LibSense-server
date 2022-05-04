@@ -67,17 +67,19 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return PageableCDLOrdersSet(**pageable_set)
 
 
-@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"])
+@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"], response_model=CDLOrder)
 def new_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
-    return crud.new_cdl_order(db, body)
+    result = crud.new_cdl_order(db, body)
+    result.cdl_item_status = [result.cdl_item_status]
+    return result
 
 
-@router.patch("/cdl-orders", tags=["CDL Orders"])
+@router.patch("/cdl-orders", tags=["CDL Orders"], response_model=BasicResponse)
 def update_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
     return crud.update_cdl_order(db, body)
 
 
-@router.delete("/cdl-orders", tags=["CDL Orders"])
+@router.delete("/cdl-orders", tags=["CDL Orders"], response_model=BasicResponse)
 def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     return crud.del_cdl_order(db, book_id)
 
