@@ -46,3 +46,8 @@ def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depe
 @router.delete("/delete_user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
 def del_user(username: str, db: Session = Depends(get_db)):
     return crud.delete_user(db, username)
+
+
+@router.get("/whoami", dependencies=[Depends(validate_auth)], response_model=schema.SystemUser)
+def whoami(request: Request):
+    return request.session
