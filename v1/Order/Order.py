@@ -67,11 +67,9 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return PageableCDLOrdersSet(**pageable_set)
 
 
-@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"], response_model=CDLOrder)
+@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"], response_model=BasicResponse)
 def new_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
-    result = crud.new_cdl_order(db, body)
-    result.cdl_item_status = [result.cdl_item_status]
-    return result
+    return crud.new_cdl_order(db, body)
 
 
 @router.patch("/cdl-orders", tags=["CDL Orders"], response_model=BasicResponse)

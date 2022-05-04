@@ -154,9 +154,7 @@ def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
     db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id) \
         .update({'tags': ExtraInfo.tags + '[CDL]', 'cdl_flag': 1})
     db.commit()
-    db.refresh(cdl)
-    return cdl
-
+    return schema.BasicResponse(msg="Success")
 
 def del_cdl_order(db: Session, book_id):
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
