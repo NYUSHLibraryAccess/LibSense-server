@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from core.database import crud
 from core.utils.dependencies import get_db, validate_auth
 from core import schema
+from typing import List
 
 router = APIRouter(tags=["User/Authentication"])
 
@@ -22,6 +23,15 @@ def login(request: Request, response: Response, payload: schema.LoginRequest, db
 def logout(request: Request):
     request.session.clear()
     return {"msg": "Successfully logged out"}
+
+
+@router.get("/all_users", response_model=List[schema.SystemUser])
+def all_users(request: Request, db: Session = Depends(get_db)):
+    if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Unauthorized request. Please login or refresh the page")
+    else:
+        return crud.all_users(db)
 
 
 @router.post("/add_user", response_model=schema.SystemUser, dependencies=[Depends(validate_auth)])
