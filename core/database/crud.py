@@ -22,7 +22,7 @@ def all_users(db: Session):
 
 
 def delete_user(db: Session, username):
-    user = db.query(User).filter(User.username == username)
+    user = db.query(User).filter(User.username == username).first()
     db.delete(user)
     db.commit()
     return schema.BasicResponse(msg="Success")
@@ -255,7 +255,7 @@ def get_material_type_meta(db: Session):
 def get_local_rush_pending(db: Session):
     query = """
         select count(o.id)
-        from libsense.nyc_orders as o join libsense.extra_info as e join libsense.vendors as v
+        from nyc_orders as o join extra_info as e join vendors as v
         on e.id = o.id and o.vendor_code = v.vendor_code
         where (arrival_date is null)
           and e.checked = 0 
