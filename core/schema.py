@@ -46,6 +46,11 @@ class CDLStatus(str, Enum):
     REQUESTED = "Requested"
     ON_LOAN = "On Loan"
 
+class PhysicalCopyStatus(str, Enum):
+    NOT_ARRIVED = "Not Arrived"
+    ON_SHELF = "On Shelf"
+    DVD = "DVD"
+
 
 class FilterOperators(str, Enum):
     IN = 'in'
@@ -206,7 +211,7 @@ class CDLOrder(Order):
 class CDLOrderDetail(CDLOrder, OrderDetail):
     order_purchased_date: Optional[date]
     due_date: Optional[date]
-    physical_copy_status: Optional[str]
+    physical_copy_status: Optional[Union[PhysicalCopyStatus, None]]
     vendor_file_url: Optional[str]
     bobcat_permanent_link: Optional[str]
     file_password: Optional[str]
@@ -253,6 +258,7 @@ class MetaData(CamelModel):
     material_type: Optional[List[Union[str, None]]]
     cdl_tags: Optional[List[Union[str, None]]]
     supported_report: Optional[List[Union[str, None]]]
+    physical_copy_status: Optional[List[Union[str, None]]]
 
 
 class Overview(CamelModel):
