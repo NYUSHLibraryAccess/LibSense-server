@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -58,25 +59,24 @@ def tag_finder(order_row, local_vendors):
                  'Rep', 'Repl', 'Replacement', 'Rush', 'Possible', 'ASAP'],
         "CDL": ["CDL"],
         "ILL": ["ILL"],
-        "Course-Reserve": ["Course", "Reserve"],
+        "Reserve": ["Course", "Reserve", "Course-Reserve"],
         "Sensitive": ["SENSITIVE"]
     }
+
+    re_rules = {k: "\\s+(%s)\\s+" % "|".join(v) for k, v in keywords.items()}
 
     if order_row["vendor_code"] and order_row["vendor_code"].upper() in local_vendors:
         tags.append("Local")
     else:
-        tags.append("NYC")
+        tags.append("NY")
 
     if order_row["material"] and "VIDEO" in order_row["material"]:
         tags.append("DVD")
 
     if (note := order_row["library_note"]) is not None:
-        for k, v in keywords.items():
-            for word in v:
-                if word.lower() in note.lower():
-                    tags.append(k)
-                    break
-
+        for k, rule in re_rules.items():
+            if re.search(rule, note, re.I):
+                tags.append(k)
     if "Rush" not in tags:
         tags.append("Non-Rush")
 
