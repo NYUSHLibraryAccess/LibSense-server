@@ -174,7 +174,7 @@ class OrderDetail(Order):
     arrival_status: Optional[str]
     total_price: Optional[float]
     order_status_update_date: Optional[date]
-    tracking_note: Optional[List[TimelineNote]]
+    tracking_note: Optional[str]
 
 
 class OrderFilter(Order):
@@ -189,7 +189,7 @@ class OrderFilter(Order):
 
 
 class PageableOrdersSet(PageableResultSet):
-    result: List[Order]
+    result: List[OrderDetail]
 
 
 class PageableOrderRequest(CamelModel):
@@ -238,7 +238,7 @@ class CDLRequest(CamelModel):
 
 
 class PageableCDLOrdersSet(PageableResultSet):
-    result: List[CDLOrder]
+    result: List[CDLOrderDetail]
 
 
 class Vendor(CamelModel):
