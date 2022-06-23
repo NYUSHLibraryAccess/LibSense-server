@@ -63,7 +63,7 @@ def tag_finder(order_row, local_vendors):
         "Sensitive": ["SENSITIVE"]
     }
 
-    re_rules = {k: "\\s+(%s)\\s+" % "|".join(v) for k, v in keywords.items()}
+    re_rules = {k: "\\b(%s)\\b" % "|".join(v) for k, v in keywords.items()}
 
     if order_row["vendor_code"] and order_row["vendor_code"].upper() in local_vendors:
         tags.append("Local")
