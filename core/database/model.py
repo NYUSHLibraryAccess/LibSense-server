@@ -34,7 +34,7 @@ class Order(Base):
     order_unit = Column(String)
     arrival_status = Column(String)
     order_status_update_date = Column(DateTime)
-    vendor_code = Column(String)
+    vendor_code = Column(String, nullable=False)
     library_note = Column(String)
 
     tracking_note = relationship("TrackingNote", back_populates="book")
