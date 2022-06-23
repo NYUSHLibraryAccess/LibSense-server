@@ -110,7 +110,6 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
     args = [*Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag]
-    print(args)
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -177,7 +176,6 @@ def add_tracking_note(db: Session, note: schema.TimelineNote):
 
 def get_starting_position(db: Session, barcode: int, order_number: str):
     query = db.query(Order).filter(Order.barcode == barcode, Order.order_number == order_number).all()
-    print(query)
     return query[0].id if len(query) == 1 else -1
 
 
