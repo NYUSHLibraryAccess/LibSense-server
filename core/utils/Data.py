@@ -230,6 +230,7 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
     del to_insert["id"]
     del to_insert["checked"]
     to_insert = pd.concat([to_insert, sorted_curr.iloc[end_idx + 1:]])
+    to_insert = to_insert[to_insert["Z68_ORDER_STATUS"] != "XXX"]
 
     check_curr = prepare_for_db(check_curr)
     to_insert = prepare_for_db(to_insert)
@@ -253,7 +254,10 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
 
     for idx, row in tqdm(to_insert.iterrows()):
         row_dict = dict_mapping(row.to_dict(), col_mapping)
-        db.add(Order(**row_dict))
+        try:
+            db.add(Order(**row_dict))
+        except:
+            pass
 
     logger.info("INSERTING PHASE COMPLETED")
 
