@@ -287,7 +287,7 @@ def get_average_days(db: Session):
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
         and tags like '%%[Rush]%%'
-        and tags like '%%[NYC]%%';
+        and tags like '%%[NY]%%';
     """
     rush_local = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
