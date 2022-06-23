@@ -278,7 +278,9 @@ def get_average_days(db: Session):
         floor(min(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
-        and tags like '%%[CDL]%%';
+        and tags like '%%[CDL]%%'
+        and nyc_orders.id in (select cdl_info.book_id from cdl_info);
+        ;
     """
     rush_nyc = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
@@ -305,6 +307,7 @@ def get_average_days(db: Session):
         floor(min(datediff(pdf_delivery_date, order_request_date))) as min
         from cdl_info
         where pdf_delivery_date is not null and order_request_date is not null;
+        ;
     """
 
     cdl_rs = db.execute(cdl.replace("\n", " ")).first()
