@@ -22,11 +22,11 @@ class Tags(str, Enum):
     CDL = 'CDL'
     LOCAL = 'Local'
     RUSH = 'Rush'
-    NYC = 'NYC'
+    NY = 'NY'
     ILL = 'ILL'
     NON_RUSH = 'Non-Rush'
     SENSITIVE = 'Sensitive'
-    COURSE_RESERVE = 'Course-Reserve'
+    RESERVE = 'Reserve'
     DVD = 'DVD'
 
     @staticmethod
