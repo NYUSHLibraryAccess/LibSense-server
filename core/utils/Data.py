@@ -73,7 +73,8 @@ def tag_finder(order_row, local_vendors):
     if order_row["material"] and "VIDEO" in order_row["material"]:
         tags.append("DVD")
 
-    if (note := order_row["library_note"]) is not None:
+    note = order_row["library_note"]
+    if note is not None:
         for k, rule in re_rules.items():
             if re.search(rule, note, re.I):
                 tags.append(k)

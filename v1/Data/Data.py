@@ -29,7 +29,8 @@ async def upload_file(
 
     try:
         async with aiofiles.open(f"{output_file}", "wb") as out_file:
-            while content := await file.read(1024):  # async read chunk
+            content = await file.read(1024)
+            while content:  # async read chunk
                 real_file_size += len(content)
                 if real_file_size > file_size:
                     raise HTTPException(
@@ -37,6 +38,7 @@ async def upload_file(
                         detail="Too large",
                     )
                 await out_file.write(content)  # async write chunk
+                content = await file.read(1024)
         msg = f"Successfully updated database with {file.filename}."
         await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
         await run_in_threadpool(lambda: Data.flush_tags(db))
