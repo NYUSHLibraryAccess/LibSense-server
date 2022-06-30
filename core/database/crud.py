@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from pydantic import Extra
 from core import schema
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -109,10 +110,10 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
 
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
-    args = [*Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag]
+    args = [*Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     table_mapping = {
-        "ExtraInfo": ["tags"],
+        "ExtraInfo": ["tags", "checked", "attention"],
         "default": "Order"
     }
     query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
@@ -162,6 +163,21 @@ def del_cdl_order(db: Session, book_id):
 
 def update_cdl_order(db: Session, cdl: schema.CDLRequest):
     db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl.__dict__)
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def mark_order_attention(db: Session, book_ids, direction):
+    for book in book_ids:
+        db.query(ExtraInfo).filter(ExtraInfo.id == book).update({ExtraInfo.attention: direction})
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def mark_order_checked(db: Session, book_ids, direction, date):
+    for book in book_ids:
+        db.query(ExtraInfo).filter(ExtraInfo.id == book)\
+            .update({ExtraInfo.checked: direction, ExtraInfo.override_reminder_time: date if direction is True else None})
     db.commit()
     return schema.BasicResponse(msg="Success")
 
@@ -307,7 +323,6 @@ def get_average_days(db: Session):
         floor(min(datediff(pdf_delivery_date, order_request_date))) as min
         from cdl_info
         where pdf_delivery_date is not null and order_request_date is not null;
-        ;
     """
 
     cdl_rs = db.execute(cdl.replace("\n", " ")).first()

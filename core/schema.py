@@ -136,6 +136,17 @@ class ExtraInfo(CamelModel):
     validation: Optional[int]
 
 
+class AttentionRequest(CamelModel):
+    id: List[int]
+    attention: bool
+
+
+class CheckedRequest(CamelModel):
+    id: List[int]
+    checked: bool
+    date: Optional[date]
+
+
 class Order(CamelModel):
     id: int
     tags: Optional[List[Tags]]
@@ -150,7 +161,9 @@ class Order(CamelModel):
     vendor_code: Optional[str]
     library_note: Optional[str]
     tags: List[str]
-    # override_date: Optional[Union[date, str]]
+    attention: Optional[bool]
+    checked: Optional[bool]
+    override_reminder_time: Optional[date]
 
 
 class OrderDetail(Order):
