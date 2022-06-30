@@ -87,9 +87,11 @@ class ExtraInfo(Base):
     id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, index=True, unique=True)
     order_number = Column(String)
     tags = Column(String)
-    override_reminder_time = Column(Integer)
     reminder_receiver = Column(String)
-    cdl_flag = Column(Integer)
+    cdl_flag = Column(Boolean)
+    checked = Column(Boolean)
+    override_reminder_time = Column(DateTime)
+    attention = Column(Boolean)
 
     book = relationship("Order", back_populates="extra_info")
 

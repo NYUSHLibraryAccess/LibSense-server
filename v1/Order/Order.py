@@ -92,6 +92,16 @@ def get_cdl_detail(book_id: int = Query(None, alias="bookId"), db: Session = Dep
     return cdl.__dict__ | order.__dict__ | extra_info.__dict__
 
 
+@router.post("/check")
+def mark_check(body: CheckedRequest, db: Session = Depends(get_db)):
+    return crud.mark_order_checked(db, body.id, body.checked, body.date)
+
+
+@router.post("/attention")
+def mark_attention(body: AttentionRequest, db: Session = Depends(get_db)):
+    return crud.mark_order_attention(db, body.id, body.attention)
+
+
 @router.post("/add-note")
 def add_note(net_id: str = Form(...),
              book_id: str = Form(...),
