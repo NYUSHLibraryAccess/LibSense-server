@@ -1,10 +1,11 @@
+from email.policy import HTTP
 from .Auth import Auth
 from .Data import Data
 from .User import User
 from .Order import Order
 from .Vendor import Vendor
 from .Report import Report
-from fastapi import APIRouter, Depends
+from fastapi import Body, APIRouter, Depends, HTTPException
 from core import schema
 from sqlalchemy.orm import Session
 from core.database.database import SessionLocal
@@ -28,8 +29,14 @@ def get_db():
         db.close()
 
 
-@router.get("/test", summary="Test API", tags=["Test"])
-def get_root():
+@router.post("/test", summary="Test API", tags=["Test"])
+def get_root(body: dict = Body(...)):
+    if body.get("error", False):
+        raise HTTPException(status_code=500)
+    if body.get("badPayload", False):
+        raise HTTPException(status_code=422)
+    if body.get("unauthorized", False):
+        raise HTTPException(status_code=401)
     return {"msg": "Hello WMS"}
 
 
