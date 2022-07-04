@@ -109,14 +109,15 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
-def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
+def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
     args = [*Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
         "default": "Order"
     }
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
+    fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy, fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
@@ -125,8 +126,8 @@ def get_order_detail(db: Session, book_id: int):
     return query
 
 
-def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
-    args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag]
+def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
+    args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
     query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).join(ExtraInfo, ExtraInfo.id == Order.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -134,7 +135,8 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
                      "circ_pdf_url", "back_to_karms_date"],
         "default": "Order"
     }
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
+    fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy, fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 

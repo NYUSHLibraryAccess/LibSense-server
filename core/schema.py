@@ -210,6 +210,7 @@ class PageableOrderRequest(CamelModel):
     page_size: Optional[int] = 10
     filters: Optional[List[FieldFilter]]
     sorter: Optional[SortCol]
+    fuzzy: Optional[str]
 
 
 class CDLOrder(Order):

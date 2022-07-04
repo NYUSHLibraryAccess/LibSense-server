@@ -24,8 +24,9 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_size = body.page_size
     filters = body.filters
     sorter = body.sorter
+    fuzzy = body.fuzzy
 
-    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter)
+    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter, fuzzy=fuzzy)
     result_lst = get_tags(result_set)
     pageable_set = {
         'page_index': page_index,
@@ -52,8 +53,9 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_size = body.page_size
     filters = body.filters
     sorter = body.sorter
+    fuzzy = body.fuzzy
 
-    result_set, total_records = crud.get_all_cdl(db, page_index, page_size, filters=filters, sorter=sorter)
+    result_set, total_records = crud.get_all_cdl(db, page_index, page_size, filters=filters, sorter=sorter, fuzzy=fuzzy)
     result_lst = get_tags(result_set)
     for idx in range(len(result_lst)):
         result_lst[idx]['cdl_item_status'] = [result_lst[idx]['cdl_item_status']]
