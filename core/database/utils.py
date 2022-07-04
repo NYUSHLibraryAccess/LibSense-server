@@ -1,7 +1,7 @@
 from core import schema
 from core.database.model import MAPPING
 from humps import decamelize
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 
 def compile_filters(query, filters, table_mapping):
@@ -14,10 +14,10 @@ def compile_filters(query, filters, table_mapping):
         target_table = MAPPING[table_mapping["default"]] if target_table is None else target_table
         if f.op == schema.FilterOperators.IN:
             if f.col == "tags":
-                or_flags = []
+                and_flags = []
                 for t in f.val:
-                    or_flags.append(target_table.tags.like('%[' + t + ']%'))
-                sql_filters.append(and_(*or_flags))
+                    and_flags.append(target_table.tags.like('%[' + t + ']%'))
+                sql_filters.append(and_(*and_flags))
             else:
                 in_filters = [getattr(target_table, decamelize(f.col)).in_(f.val)]
                 if None in f.val:
@@ -53,9 +53,18 @@ def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
     return query.order_by(col, backup_sort_key)
 
 
-def compile(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None):
+def compile_fuzzy(query, fuzzy, fuzzy_cols):
+    fuzzy_filters = []
+    for col in fuzzy_cols:
+        fuzzy_filters.append(col.like('%' + fuzzy + '%'))
+    query = query.filter(or_(*fuzzy_filters))
+    return query
+
+def compile(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None, fuzzy=None, fuzzy_cols=None):
     if filters and table_mapping:
         query = compile_filters(query, filters, table_mapping)
+    if fuzzy and fuzzy_cols:
+        query = compile_fuzzy(query, fuzzy, fuzzy_cols)
     if sorter and table_mapping:
         query = compile_sorters(query, sorter, table_mapping, default_key)
     if suffix is not None:
