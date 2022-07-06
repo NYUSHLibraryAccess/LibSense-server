@@ -1,5 +1,5 @@
 from core.schema import *
-from fastapi import Depends, APIRouter, Form, Query
+from fastapi import Depends, APIRouter, Query, Request
 from sqlalchemy.orm import Session
 from core.database import crud
 from core.utils.dependencies import get_db, validate_auth
@@ -105,14 +105,11 @@ def mark_attention(body: AttentionRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/add-note")
-def add_note(net_id: str = Form(...),
-             book_id: str = Form(...),
-             content: str = Form(...),
-             db: Session = Depends(get_db)):
-    note = TimelineNote(
-        book_id=book_id,
+def add_note(request: Request, body: TrackingNoteRequest, db: Session = Depends(get_db)):
+    note = TrackingNote(
+        book_id=body.book_id,
         date=datetime.now(),
-        taken_by=net_id,
-        content=content,
+        taken_by=request.session['username'],
+        content=body.content,
     )
     return crud.add_tracking_note(db, note)

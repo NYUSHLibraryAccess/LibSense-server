@@ -184,7 +184,7 @@ def mark_order_checked(db: Session, book_ids, direction, date):
     return schema.BasicResponse(msg="Success")
 
 
-def add_tracking_note(db: Session, note: schema.TimelineNote):
+def add_tracking_note(db: Session, note: schema.TrackingNote):
     new_note = TrackingNote(**note.__dict__)
     db.add(new_note)
     db.commit()
