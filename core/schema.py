@@ -109,7 +109,12 @@ class Message(CamelModel):
     book_related: Optional[str]
 
 
-class TimelineNote(CamelModel):
+class TrackingNoteRequest(CamelModel):
+    book_id: int
+    content: str
+
+
+class TrackingNote(CamelModel):
     book_id: int
     date: datetime
     taken_by: str
