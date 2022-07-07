@@ -64,7 +64,7 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
     args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
             CDLOrder.pdf_delivery_date, CDLOrder.back_to_karms_date,
             Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code]
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.override_reminder_time, ExtraInfo.checked]
     table_mapping = {
         "CDLOrder": [
             "cdl_item_status", "order_request_date", "scanning_vendor_payment_date",
@@ -73,7 +73,8 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
         "default": "Order"
     }
     query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).filter(CDLOrder.pdf_delivery_date == None)
-    suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30""")
+    suffix = text("""datediff(current_timestamp(), order_request_date) > 30
+        and (checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time))))""")
 
     query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
 
@@ -284,9 +285,10 @@ def get_local_rush_pending(db: Session):
 def get_cdl_pending(db: Session):
     cdl = """
         select count(book_id)
-        from cdl_info
+        from cdl_info inner join extra_info on cdl_info.book_id = extra_info.id
         where pdf_delivery_date is null 
-        and datediff(current_timestamp(), order_request_date) > 30;
+        and datediff(current_timestamp(), order_request_date) > 30
+        and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time))));
     """
     return db.execute(cdl.replace("\n", " ")).first()
 
