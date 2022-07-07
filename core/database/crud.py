@@ -288,7 +288,7 @@ def get_cdl_pending(db: Session):
         from cdl_info inner join extra_info on cdl_info.book_id = extra_info.id
         where pdf_delivery_date is null 
         and datediff(current_timestamp(), order_request_date) > 30
-        and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time))));
+        and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time));
     """
     return db.execute(cdl.replace("\n", " ")).first()
 
