@@ -169,6 +169,7 @@ class Order(CamelModel):
     attention: Optional[bool]
     checked: Optional[bool]
     override_reminder_time: Optional[date]
+    tracking_note: Optional[str]
 
 
 class OrderDetail(Order):
@@ -192,7 +193,6 @@ class OrderDetail(Order):
     arrival_status: Optional[str]
     total_price: Optional[float]
     order_status_update_date: Optional[date]
-    tracking_note: Optional[str]
 
 
 class OrderFilter(Order):

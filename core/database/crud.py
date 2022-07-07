@@ -122,7 +122,9 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
 
 
 def get_order_detail(db: Session, book_id: int):
+    print(book_id)
     query = db.query(Order, ExtraInfo).join(ExtraInfo, Order.id == ExtraInfo.id).filter(Order.id == book_id).first()
+    # print(query[0].tracking_note)
     return query
 
 

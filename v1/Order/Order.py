@@ -10,6 +10,8 @@ router = APIRouter(prefix="/orders", tags=["Order"], dependencies=[Depends(valid
 def get_tags(result_set):
     result_lst = []
     for row in result_set:
+        print(row)
+        print(row._mapping)
         row_dict = dict(row._mapping)
         row_dict['tags'] = Tags.split_tags(row_dict['tags'])
         if row_dict.get("cdl_flag") == 1 and "CDL" not in row_dict['tags']:
