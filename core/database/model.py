@@ -34,7 +34,7 @@ class Order(Base):
     order_unit = Column(String)
     arrival_status = Column(String)
     order_status_update_date = Column(DateTime)
-    vendor_code = Column(String)
+    vendor_code = Column(String, nullable=False)
     library_note = Column(String)
 
     tracking_note = relationship("TrackingNote", back_populates="book")
@@ -87,9 +87,11 @@ class ExtraInfo(Base):
     id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, index=True, unique=True)
     order_number = Column(String)
     tags = Column(String)
-    override_reminder_time = Column(Integer)
     reminder_receiver = Column(String)
-    cdl_flag = Column(Integer)
+    cdl_flag = Column(Boolean)
+    checked = Column(Boolean)
+    override_reminder_time = Column(DateTime)
+    attention = Column(Boolean)
 
     book = relationship("Order", back_populates="extra_info")
 

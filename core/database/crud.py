@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from pydantic import Extra
 from core import schema
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -107,16 +109,15 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
-def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
-    args = [Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code,
-            ExtraInfo.tags, ExtraInfo.cdl_flag]
+def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
+    args = [*Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
     query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
     table_mapping = {
-        "ExtraInfo": ["tags"],
+        "ExtraInfo": ["tags", "checked", "attention"],
         "default": "Order"
     }
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
+    fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy, fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
@@ -125,12 +126,8 @@ def get_order_detail(db: Session, book_id: int):
     return query
 
 
-def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None):
-    args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
-            CDLOrder.pdf_delivery_date, CDLOrder.circ_pdf_url, CDLOrder.back_to_karms_date,
-            Order.id, Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code,
-            ExtraInfo.tags, ExtraInfo.cdl_flag]
+def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
+    args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
     query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).join(ExtraInfo, ExtraInfo.id == Order.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -138,7 +135,8 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
                      "circ_pdf_url", "back_to_karms_date"],
         "default": "Order"
     }
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit)
+    fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy, fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
@@ -171,7 +169,22 @@ def update_cdl_order(db: Session, cdl: schema.CDLRequest):
     return schema.BasicResponse(msg="Success")
 
 
-def add_tracking_note(db: Session, note: schema.TimelineNote):
+def mark_order_attention(db: Session, book_ids, direction):
+    for book in book_ids:
+        db.query(ExtraInfo).filter(ExtraInfo.id == book).update({ExtraInfo.attention: direction})
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def mark_order_checked(db: Session, book_ids, direction, date):
+    for book in book_ids:
+        db.query(ExtraInfo).filter(ExtraInfo.id == book)\
+            .update({ExtraInfo.checked: direction, ExtraInfo.override_reminder_time: date if direction is True else None})
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def add_tracking_note(db: Session, note: schema.TrackingNote):
     new_note = TrackingNote(**note.__dict__)
     db.add(new_note)
     db.commit()
@@ -181,7 +194,6 @@ def add_tracking_note(db: Session, note: schema.TimelineNote):
 
 def get_starting_position(db: Session, barcode: int, order_number: str):
     query = db.query(Order).filter(Order.barcode == barcode, Order.order_number == order_number).all()
-    print(query)
     return query[0].id if len(query) == 1 else -1
 
 
@@ -284,7 +296,9 @@ def get_average_days(db: Session):
         floor(min(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
-        and tags like '%%[CDL]%%';
+        and tags like '%%[CDL]%%'
+        and nyc_orders.id in (select cdl_info.book_id from cdl_info);
+        ;
     """
     rush_nyc = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
@@ -293,7 +307,7 @@ def get_average_days(db: Session):
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
         and tags like '%%[Rush]%%'
-        and tags like '%%[NYC]%%';
+        and tags like '%%[NY]%%';
     """
     rush_local = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,

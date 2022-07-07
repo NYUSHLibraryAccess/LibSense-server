@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -58,25 +59,25 @@ def tag_finder(order_row, local_vendors):
                  'Rep', 'Repl', 'Replacement', 'Rush', 'Possible', 'ASAP'],
         "CDL": ["CDL"],
         "ILL": ["ILL"],
-        "Course-Reserve": ["Course", "Reserve"],
+        "Reserve": ["Course", "Reserve", "Course-Reserve"],
         "Sensitive": ["SENSITIVE"]
     }
+
+    re_rules = {k: "\\b(%s)\\b" % "|".join(v) for k, v in keywords.items()}
 
     if order_row["vendor_code"] and order_row["vendor_code"].upper() in local_vendors:
         tags.append("Local")
     else:
-        tags.append("NYC")
+        tags.append("NY")
 
     if order_row["material"] and "VIDEO" in order_row["material"]:
         tags.append("DVD")
 
-    if (note := order_row["library_note"]) is not None:
-        for k, v in keywords.items():
-            for word in v:
-                if word.lower() in note.lower():
-                    tags.append(k)
-                    break
-
+    note = order_row["library_note"]
+    if note is not None:
+        for k, rule in re_rules.items():
+            if re.search(rule, note, re.I):
+                tags.append(k)
     if "Rush" not in tags:
         tags.append("Non-Rush")
 
@@ -230,6 +231,7 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
     del to_insert["id"]
     del to_insert["checked"]
     to_insert = pd.concat([to_insert, sorted_curr.iloc[end_idx + 1:]])
+    to_insert = to_insert[to_insert["Z68_ORDER_STATUS"] != "XXX"]
 
     check_curr = prepare_for_db(check_curr)
     to_insert = prepare_for_db(to_insert)
@@ -253,7 +255,10 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
 
     for idx, row in tqdm(to_insert.iterrows()):
         row_dict = dict_mapping(row.to_dict(), col_mapping)
-        db.add(Order(**row_dict))
+        try:
+            db.add(Order(**row_dict))
+        except:
+            pass
 
     logger.info("INSERTING PHASE COMPLETED")
 

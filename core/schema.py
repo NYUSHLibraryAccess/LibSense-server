@@ -22,11 +22,11 @@ class Tags(str, Enum):
     CDL = 'CDL'
     LOCAL = 'Local'
     RUSH = 'Rush'
-    NYC = 'NYC'
+    NY = 'NY'
     ILL = 'ILL'
     NON_RUSH = 'Non-Rush'
     SENSITIVE = 'Sensitive'
-    COURSE_RESERVE = 'Course-Reserve'
+    RESERVE = 'Reserve'
     DVD = 'DVD'
 
     @staticmethod
@@ -109,7 +109,12 @@ class Message(CamelModel):
     book_related: Optional[str]
 
 
-class TimelineNote(CamelModel):
+class TrackingNoteRequest(CamelModel):
+    book_id: int
+    content: str
+
+
+class TrackingNote(CamelModel):
     book_id: int
     date: datetime
     taken_by: str
@@ -136,6 +141,17 @@ class ExtraInfo(CamelModel):
     validation: Optional[int]
 
 
+class AttentionRequest(CamelModel):
+    id: List[int]
+    attention: bool
+
+
+class CheckedRequest(CamelModel):
+    id: List[int]
+    checked: bool
+    date: Optional[date]
+
+
 class Order(CamelModel):
     id: int
     tags: Optional[List[Tags]]
@@ -150,7 +166,9 @@ class Order(CamelModel):
     vendor_code: Optional[str]
     library_note: Optional[str]
     tags: List[str]
-    # override_date: Optional[Union[date, str]]
+    attention: Optional[bool]
+    checked: Optional[bool]
+    override_reminder_time: Optional[date]
 
 
 class OrderDetail(Order):
@@ -174,7 +192,7 @@ class OrderDetail(Order):
     arrival_status: Optional[str]
     total_price: Optional[float]
     order_status_update_date: Optional[date]
-    tracking_note: Optional[List[TimelineNote]]
+    tracking_note: Optional[str]
 
 
 class OrderFilter(Order):
@@ -189,7 +207,7 @@ class OrderFilter(Order):
 
 
 class PageableOrdersSet(PageableResultSet):
-    result: List[Order]
+    result: List[OrderDetail]
 
 
 class PageableOrderRequest(CamelModel):
@@ -197,6 +215,7 @@ class PageableOrderRequest(CamelModel):
     page_size: Optional[int] = 10
     filters: Optional[List[FieldFilter]]
     sorter: Optional[SortCol]
+    fuzzy: Optional[str]
 
 
 class CDLOrder(Order):
@@ -238,7 +257,7 @@ class CDLRequest(CamelModel):
 
 
 class PageableCDLOrdersSet(PageableResultSet):
-    result: List[CDLOrder]
+    result: List[CDLOrderDetail]
 
 
 class Vendor(CamelModel):

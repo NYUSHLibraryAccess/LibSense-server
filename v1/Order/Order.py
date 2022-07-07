@@ -1,5 +1,5 @@
 from core.schema import *
-from fastapi import Depends, APIRouter, Form, Query
+from fastapi import Depends, APIRouter, Query, Request
 from sqlalchemy.orm import Session
 from core.database import crud
 from core.utils.dependencies import get_db, validate_auth
@@ -24,8 +24,9 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_size = body.page_size
     filters = body.filters
     sorter = body.sorter
+    fuzzy = body.fuzzy
 
-    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter)
+    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter, fuzzy=fuzzy)
     result_lst = get_tags(result_set)
     pageable_set = {
         'page_index': page_index,
@@ -52,8 +53,9 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_size = body.page_size
     filters = body.filters
     sorter = body.sorter
+    fuzzy = body.fuzzy
 
-    result_set, total_records = crud.get_all_cdl(db, page_index, page_size, filters=filters, sorter=sorter)
+    result_set, total_records = crud.get_all_cdl(db, page_index, page_size, filters=filters, sorter=sorter, fuzzy=fuzzy)
     result_lst = get_tags(result_set)
     for idx in range(len(result_lst)):
         result_lst[idx]['cdl_item_status'] = [result_lst[idx]['cdl_item_status']]
@@ -92,15 +94,22 @@ def get_cdl_detail(book_id: int = Query(None, alias="bookId"), db: Session = Dep
     return cdl.__dict__ | order.__dict__ | extra_info.__dict__
 
 
+@router.post("/check")
+def mark_check(body: CheckedRequest, db: Session = Depends(get_db)):
+    return crud.mark_order_checked(db, body.id, body.checked, body.date)
+
+
+@router.post("/attention")
+def mark_attention(body: AttentionRequest, db: Session = Depends(get_db)):
+    return crud.mark_order_attention(db, body.id, body.attention)
+
+
 @router.post("/add-note")
-def add_note(net_id: str = Form(...),
-             book_id: str = Form(...),
-             content: str = Form(...),
-             db: Session = Depends(get_db)):
-    note = TimelineNote(
-        book_id=book_id,
+def add_note(request: Request, body: TrackingNoteRequest, db: Session = Depends(get_db)):
+    note = TrackingNote(
+        book_id=body.book_id,
         date=datetime.now(),
-        taken_by=net_id,
-        content=content,
+        taken_by=request.session['username'],
+        content=body.content,
     )
     return crud.add_tracking_note(db, note)
