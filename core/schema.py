@@ -46,6 +46,7 @@ class CDLStatus(str, Enum):
     REQUESTED = "Requested"
     ON_LOAN = "On Loan"
 
+
 class PhysicalCopyStatus(str, Enum):
     NOT_ARRIVED = "Not Arrived"
     ON_SHELF = "On Shelf"
@@ -318,4 +319,3 @@ class SendReportRequest(CamelModel):
     username: str
     email: str
     report_type: List[ReportTypes]
-

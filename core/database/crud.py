@@ -113,7 +113,7 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
     args = [*Order.__table__.c, TrackingNote.tracking_note, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked,
             ExtraInfo.attention, ExtraInfo.override_reminder_time]
-    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)\
+    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id) \
         .join(TrackingNote, Order.id == TrackingNote.book_id)
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
@@ -126,8 +126,8 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
 
 
 def get_order_detail(db: Session, book_id: int):
-    query = db.query(Order, ExtraInfo, TrackingNote)\
-        .join(ExtraInfo, Order.id == ExtraInfo.id).join(TrackingNote, Order.id == TrackingNote.book_id)\
+    query = db.query(Order, ExtraInfo, TrackingNote) \
+        .join(ExtraInfo, Order.id == ExtraInfo.id).join(TrackingNote, Order.id == TrackingNote.book_id) \
         .filter(Order.id == book_id).first()
     return query
 
@@ -135,7 +135,7 @@ def get_order_detail(db: Session, book_id: int):
 def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
     args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked,
             ExtraInfo.attention, ExtraInfo.override_reminder_time, TrackingNote.tracking_note]
-    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id)\
+    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id) \
         .join(ExtraInfo, ExtraInfo.id == Order.id).join(TrackingNote, TrackingNote.book_id == Order.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -151,7 +151,7 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
 
 def get_cdl_detail(db: Session, order_id: int):
     query = db.query(CDLOrder, Order, ExtraInfo, TrackingNote).join(Order, CDLOrder.book_id == Order.id) \
-        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).join(TrackingNote, TrackingNote.book_id == Order.id)\
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).join(TrackingNote, TrackingNote.book_id == Order.id) \
         .filter(CDLOrder.book_id == order_id).first()
     return query
 

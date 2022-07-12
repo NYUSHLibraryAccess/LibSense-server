@@ -17,6 +17,7 @@ def get_tags(result_set):
         result_lst.append(row_dict)
     return result_lst
 
+
 @router.get("/test-note")
 def get_test_note(body: dict = Body(...), db: Session = Depends(get_db)):
     result = crud.get_book_tracking_note(db, body["id"])
@@ -31,7 +32,8 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     sorter = body.sorter
     fuzzy = body.fuzzy
 
-    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter, fuzzy=fuzzy)
+    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter,
+                                                    fuzzy=fuzzy)
     result_lst = get_tags(result_set)
     pageable_set = {
         'page_index': page_index,

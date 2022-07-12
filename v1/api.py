@@ -1,7 +1,5 @@
-from email.policy import HTTP
 from .Auth import Auth
 from .Data import Data
-from .User import User
 from .Order import Order
 from .Vendor import Vendor
 from .Report import Report
@@ -11,11 +9,9 @@ from sqlalchemy.orm import Session
 from core.database.database import SessionLocal
 from core.database import crud
 
-
 router = APIRouter(prefix='/v1')
 router.include_router(Auth.router)
 router.include_router(Data.router)
-# router.include_router(User.router)
 router.include_router(Order.router)
 router.include_router(Vendor.router)
 router.include_router(Report.router)
