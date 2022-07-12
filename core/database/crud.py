@@ -1,10 +1,8 @@
-from fastapi import HTTPException
-from pydantic import Extra
 from core import schema
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from core.database.model import *
-from core.database.utils import compile, compile_filters, compile_sorters
+from core.database.utils import compile
 
 
 def login(db: Session, username, password):
@@ -64,7 +62,8 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
     args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
             CDLOrder.pdf_delivery_date, CDLOrder.back_to_karms_date,
             Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.override_reminder_time, ExtraInfo.checked]
+            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code,
+            ExtraInfo.override_reminder_time, ExtraInfo.checked]
     table_mapping = {
         "CDLOrder": [
             "cdl_item_status", "order_request_date", "scanning_vendor_payment_date",
@@ -87,7 +86,8 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
 def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
     if filters is None:
         filters = []
-    args = [Order.order_number, Order.barcode, Order.title, Order.created_date, Order.arrival_date, Order.arrival_status,
+    args = [Order.order_number, Order.barcode, Order.title, Order.created_date, Order.arrival_date,
+            Order.arrival_status,
             Order.arrival_operator, Order.order_status, Order.order_status_update_date, Order.ips_code, Order.ips,
             Order.ips_update_date, Order.ips_code_operator, Order.material, Order.material_type, Order.vendor_code,
             Order.library_note, Order.invoice_status, Order.collection, Order.item_status, Order.total_price, Order.bsn,
@@ -111,27 +111,32 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
 
 
 def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
-    args = [*Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
-    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)
+    args = [*Order.__table__.c, TrackingNote.tracking_note, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked,
+            ExtraInfo.attention, ExtraInfo.override_reminder_time]
+    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id)\
+        .join(TrackingNote, Order.id == TrackingNote.book_id)
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
         "default": "Order"
     }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy, fuzzy_cols=fuzzy_cols)
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
+                                   fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_order_detail(db: Session, book_id: int):
-    print(book_id)
-    query = db.query(Order, ExtraInfo).join(ExtraInfo, Order.id == ExtraInfo.id).filter(Order.id == book_id).first()
-    # print(query[0].tracking_note)
+    query = db.query(Order, ExtraInfo, TrackingNote)\
+        .join(ExtraInfo, Order.id == ExtraInfo.id).join(TrackingNote, Order.id == TrackingNote.book_id)\
+        .filter(Order.id == book_id).first()
     return query
 
 
 def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
-    args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked, ExtraInfo.attention, ExtraInfo.override_reminder_time]
-    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).join(ExtraInfo, ExtraInfo.id == Order.id)
+    args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked,
+            ExtraInfo.attention, ExtraInfo.override_reminder_time, TrackingNote.tracking_note]
+    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id)\
+        .join(ExtraInfo, ExtraInfo.id == Order.id).join(TrackingNote, TrackingNote.book_id == Order.id)
     table_mapping = {
         "ExtraInfo": ["tags"],
         "CDLOrder": ["cdl_item_status", "order_request_date", "scanning_vendor_payment_date", "pdf_delivery_date",
@@ -139,13 +144,15 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
         "default": "Order"
     }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy, fuzzy_cols=fuzzy_cols)
+    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
+                                   fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_cdl_detail(db: Session, order_id: int):
-    query = db.query(CDLOrder, Order, ExtraInfo).join(Order, CDLOrder.book_id == Order.id) \
-        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.book_id == order_id).first()
+    query = db.query(CDLOrder, Order, ExtraInfo, TrackingNote).join(Order, CDLOrder.book_id == Order.id) \
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).join(TrackingNote, TrackingNote.book_id == Order.id)\
+        .filter(CDLOrder.book_id == order_id).first()
     return query
 
 
@@ -156,6 +163,7 @@ def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
         .update({'tags': ExtraInfo.tags + '[CDL]', 'cdl_flag': 1})
     db.commit()
     return schema.BasicResponse(msg="Success")
+
 
 def del_cdl_order(db: Session, book_id):
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
@@ -181,8 +189,9 @@ def mark_order_attention(db: Session, book_ids, direction):
 
 def mark_order_checked(db: Session, book_ids, direction, date):
     for book in book_ids:
-        db.query(ExtraInfo).filter(ExtraInfo.id == book)\
-            .update({ExtraInfo.checked: direction, ExtraInfo.override_reminder_time: date if direction is True else None})
+        db.query(ExtraInfo).filter(ExtraInfo.id == book) \
+            .update(
+            {ExtraInfo.checked: direction, ExtraInfo.override_reminder_time: date if direction is True else None})
     db.commit()
     return schema.BasicResponse(msg="Success")
 

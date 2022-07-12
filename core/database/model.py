@@ -1,5 +1,4 @@
-from sqlalchemy import Float, DateTime, Boolean, Column, ForeignKey, Integer, String, VARCHAR
-from sqlalchemy.orm import relationship
+from sqlalchemy import Float, DateTime, Boolean, Column, ForeignKey, Integer, String
 
 from .database import Base
 
@@ -37,16 +36,10 @@ class Order(Base):
     vendor_code = Column(String, nullable=False)
     library_note = Column(String)
 
-    tracking_note = relationship("TrackingNote", back_populates="book")
-    extra_info = relationship("ExtraInfo", back_populates="book")
-
 
 class CDLOrder(Base):
     __tablename__ = "cdl_info"
     book_id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True)
-    # order_number = Column(String, ForeignKey("nyc_orders.order_number"))
-    # title = Column(String)
-    # barcode = Column(String)
     cdl_item_status = Column(String)
     order_request_date = Column(DateTime)
     order_purchased_date = Column(DateTime)
@@ -67,11 +60,9 @@ class TrackingNote(Base):
     __tablename__ = "notes"
     id = Column(Integer, primary_key=True, index=True, unique=True)
     book_id = Column(Integer, ForeignKey("nyc_orders.id"))
-    content = Column(String)
+    tracking_note = Column(String)
     taken_by = Column(String)
     date = Column(DateTime)
-
-    book = relationship("Order", back_populates="tracking_note")
 
 
 class Vendor(Base):
@@ -92,8 +83,6 @@ class ExtraInfo(Base):
     checked = Column(Boolean)
     override_reminder_time = Column(DateTime)
     attention = Column(Boolean)
-
-    book = relationship("Order", back_populates="extra_info")
 
 
 class User(Base):
