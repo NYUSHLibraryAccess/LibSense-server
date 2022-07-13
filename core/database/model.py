@@ -57,8 +57,10 @@ class CDLOrder(Base):
 
 
 class TrackingNote(Base):
+    # didn't put this column in ExtraInfo (1...1 mapping)
+    # might be expanded to multiple tracking notes in the future, so a separate table is created
     __tablename__ = "notes"
-    id = Column(Integer, primary_key=True, index=True, unique=True)
+    note_id = Column(Integer, primary_key=True, index=True, unique=True)
     book_id = Column(Integer, ForeignKey("nyc_orders.id"))
     tracking_note = Column(String)
     taken_by = Column(String)

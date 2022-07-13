@@ -18,12 +18,6 @@ def get_tags(result_set):
     return result_lst
 
 
-@router.get("/test-note")
-def get_test_note(body: dict = Body(...), db: Session = Depends(get_db)):
-    result = crud.get_book_tracking_note(db, body["id"])
-    return result
-
-
 @router.post("/all-orders", response_model=PageableOrdersSet)
 def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
@@ -54,6 +48,37 @@ def get_order_detail(book_id: int = Query(None, alias="bookId"), db: Session = D
     return order.__dict__ | extra_info.__dict__ | tracking_note.__dict__
 
 
+@router.patch("/all-orders/detail", response_model=BasicResponse)
+def add_note(request: Request, body: TrackingNoteRequest, db: Session = Depends(get_db)):
+    # for normal order, all other data are read-only from weekly NYC ORDER REPORT
+    # only tracking note is editable
+
+    note = TrackingNote(
+        book_id=body.book_id,
+        date=datetime.now(),
+        taken_by=request.session['username'],
+        tracking_note=body.tracking_note
+    )
+
+    if crud.get_tracking_note(db, body.book_id):
+        return crud.update_tracking_note(db, note)
+    else:
+        return crud.add_tracking_note(db, note)
+
+
+@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"], response_model=BasicResponse)
+def new_cdl_order(request: Request, body: CDLRequest, db: Session = Depends(get_db)):
+    if body.tracking_note:
+        note = TrackingNote(
+            book_id=body.book_id,
+            date=datetime.now(),
+            taken_by=request.session['username'],
+            tracking_note=body.tracking_note
+        )
+        crud.add_tracking_note(db, note)
+    return crud.new_cdl_order(db, body)
+
+
 @router.post("/cdl-orders", response_model=PageableCDLOrdersSet, tags=["CDL Orders"])
 def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
@@ -76,16 +101,6 @@ def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return PageableCDLOrdersSet(**pageable_set)
 
 
-@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"], response_model=BasicResponse)
-def new_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
-    return crud.new_cdl_order(db, body)
-
-
-@router.patch("/cdl-orders", tags=["CDL Orders"], response_model=BasicResponse)
-def update_cdl_order(body: CDLRequest, db: Session = Depends(get_db)):
-    return crud.update_cdl_order(db, body)
-
-
 @router.delete("/cdl-orders", tags=["CDL Orders"], response_model=BasicResponse)
 def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     return crud.del_cdl_order(db, book_id)
@@ -101,6 +116,23 @@ def get_cdl_detail(book_id: int = Query(None, alias="bookId"), db: Session = Dep
     return cdl.__dict__ | order.__dict__ | extra_info.__dict__ | tracking_note.__dict__
 
 
+@router.patch("/cdl-orders/detail", tags=["CDL Orders"], response_model=BasicResponse)
+def update_cdl_order(request: Request, body: CDLRequest, db: Session = Depends(get_db)):
+    content = body.tracking_note
+    crud.update_cdl_order(db, body)
+    note = TrackingNote(
+        book_id=body.book_id,
+        date=datetime.now(),
+        taken_by=request.session['username'],
+        tracking_note=content,
+    )
+
+    if crud.get_tracking_note(db, body.book_id):
+        return crud.update_tracking_note(db, note)
+    else:
+        return crud.add_tracking_note(db, note)
+
+
 @router.post("/check")
 def mark_check(body: CheckedRequest, db: Session = Depends(get_db)):
     return crud.mark_order_checked(db, body.id, body.checked, body.date)
@@ -110,13 +142,3 @@ def mark_check(body: CheckedRequest, db: Session = Depends(get_db)):
 def mark_attention(body: AttentionRequest, db: Session = Depends(get_db)):
     return crud.mark_order_attention(db, body.id, body.attention)
 
-
-@router.post("/add-note")
-def add_note(request: Request, body: TrackingNoteRequest, db: Session = Depends(get_db)):
-    note = TrackingNote(
-        book_id=body.book_id,
-        date=datetime.now(),
-        taken_by=request.session['username'],
-        content=body.content,
-    )
-    return crud.add_tracking_note(db, note)

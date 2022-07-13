@@ -112,14 +112,14 @@ class Message(CamelModel):
 
 class TrackingNoteRequest(CamelModel):
     book_id: int
-    content: str
+    tracking_note: str
 
 
 class TrackingNote(CamelModel):
     book_id: int
     date: datetime
     taken_by: str
-    content: str
+    tracking_note: str
 
     class Config:
         orm_mode = True
@@ -241,7 +241,7 @@ class CDLOrderDetail(CDLOrder, OrderDetail):
 
 class CDLRequest(CamelModel):
     book_id: int
-    cdl_item_status: CDLStatus
+    cdl_item_status: Optional[CDLStatus]
     order_request_date: Optional[date]
     scanning_vendor_payment_date: Optional[date]
     pdf_delivery_date: Optional[date]
@@ -255,6 +255,7 @@ class CDLRequest(CamelModel):
     file_password: Optional[str]
     author: Optional[str]
     pages: Optional[str]
+    tracking_note: Optional[str]
 
 
 class PageableCDLOrdersSet(PageableResultSet):

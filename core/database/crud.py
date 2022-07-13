@@ -157,7 +157,9 @@ def get_cdl_detail(db: Session, order_id: int):
 
 
 def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
-    cdl = CDLOrder(**cdl_request.__dict__)
+    cdl_dict = cdl_request.__dict__
+    del cdl_dict['tracking_note']
+    cdl = CDLOrder(**cdl_dict)
     db.add(cdl)
     db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id) \
         .update({'tags': ExtraInfo.tags + '[CDL]', 'cdl_flag': 1})
@@ -175,7 +177,10 @@ def del_cdl_order(db: Session, book_id):
 
 
 def update_cdl_order(db: Session, cdl: schema.CDLRequest):
-    db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl.__dict__)
+    cdl_dict = cdl.__dict__
+    if cdl_dict.get('tracking_note', 'undefined') != 'undefined':
+        del cdl_dict['tracking_note']
+    db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl_dict)
     db.commit()
     return schema.BasicResponse(msg="Success")
 
@@ -196,12 +201,22 @@ def mark_order_checked(db: Session, book_ids, direction, date):
     return schema.BasicResponse(msg="Success")
 
 
+def get_tracking_note(db: Session, book_id: int):
+    return db.query(TrackingNote).filter(TrackingNote.book_id == book_id).first()
+
+
 def add_tracking_note(db: Session, note: schema.TrackingNote):
     new_note = TrackingNote(**note.__dict__)
     db.add(new_note)
     db.commit()
     db.refresh(new_note)
-    return new_note
+    return schema.BasicResponse(msg="Success")
+
+
+def update_tracking_note(db: Session, note: schema.TrackingNote):
+    db.query(TrackingNote).filter(TrackingNote.book_id == note.book_id).update(note.__dict__)
+    db.commit()
+    return schema.BasicResponse(msg="Success")
 
 
 def get_starting_position(db: Session, barcode: int, order_number: str):
