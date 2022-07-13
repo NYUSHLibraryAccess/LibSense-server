@@ -6,7 +6,8 @@ from core.database.utils import compile
 
 
 def login(db: Session, username, password):
-    return db.query(User).filter(User.username == username).filter(User.password == password).first()
+    return db.query(User).filter(User.username == username) \
+        .filter(User.password == password).first()
 
 
 def add_user(db: Session, new_user: schema.NewSystemUser):
@@ -170,7 +171,7 @@ def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
 def del_cdl_order(db: Session, book_id):
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
     db.delete(query)
-    sql = text("UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;" % book_id)
+    sql = text('''UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;''' % book_id)
     db.execute(sql)
     db.commit()
     return schema.BasicResponse(msg="Success")

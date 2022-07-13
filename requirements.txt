@@ -36,3 +36,5 @@ urllib3~=1.26.9
 nbformat~=5.2.0
 redis~=4.2.2
 starlette-session~=0.4.2
+pylint~=2.14.4
+pylint-quotes~=0.2.3

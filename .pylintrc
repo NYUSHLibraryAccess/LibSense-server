@@ -1,0 +1,12 @@
+[MASTER]
+init-hook='import sys; sys.path.append(".")'
+load-plugins=pylint_quotes
+
+[MESSAGE CONTROL]
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    consider-using-f-string
+
+[BASICS]
+argument-naming-style=any
