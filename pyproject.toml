@@ -1,0 +1,3 @@
+[tool.black]
+profile = "black"
+line-length = 100
