@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from enum import Enum
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Optional
 from pydantic import BaseModel, conlist
 from humps import camelize
 
@@ -19,15 +19,15 @@ class CamelModel(BaseModel):
 
 
 class Tags(str, Enum):
-    CDL = 'CDL'
-    LOCAL = 'Local'
-    RUSH = 'Rush'
-    NY = 'NY'
-    ILL = 'ILL'
-    NON_RUSH = 'Non-Rush'
-    SENSITIVE = 'Sensitive'
-    RESERVE = 'Reserve'
-    DVD = 'DVD'
+    CDL = "CDL"
+    LOCAL = "Local"
+    RUSH = "Rush"
+    NY = "NY"
+    ILL = "ILL"
+    NON_RUSH = "Non-Rush"
+    SENSITIVE = "Sensitive"
+    RESERVE = "Reserve"
+    DVD = "DVD"
 
     @staticmethod
     def split_tags(tag_str):
@@ -54,22 +54,22 @@ class PhysicalCopyStatus(str, Enum):
 
 
 class FilterOperators(str, Enum):
-    IN = 'in'
-    LIKE = 'like'
-    BETWEEN = 'between'
-    GREATER = 'greater'
-    SMALLER = 'smaller'
+    IN = "in"
+    LIKE = "like"
+    BETWEEN = "between"
+    GREATER = "greater"
+    SMALLER = "smaller"
 
 
 class ReportTypes(str, Enum):
-    RUSH_LOCAL = "RushLocal",
+    RUSH_LOCAL = "RushLocal"
     CDL_ORDER = "CDLOrder"
     SHANGHAI_ORDER = "ShanghaiOrder"
 
 
 class EnumRole(str, Enum):
-    SYS_ADMIN = 'System Admin'
-    USER = 'User'
+    SYS_ADMIN = "System Admin"
+    USER = "User"
 
 
 class BasicResponse(CamelModel):

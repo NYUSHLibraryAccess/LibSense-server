@@ -1,13 +1,15 @@
-from core import schema
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from core.database.model import *
+
+from core import schema
 from core.database.utils import compile_query
+from core.database.model import Order, ExtraInfo, TrackingNote, CDLOrder, User, Vendor
 
 
 def login(db: Session, username, password):
-    return db.query(User).filter(User.username == username) \
-        .filter(User.password == password).first()
+    return (
+        db.query(User).filter(User.username == username).filter(User.password == password).first()
+    )
 
 
 def add_user(db: Session, new_user: schema.NewSystemUser):
@@ -29,29 +31,50 @@ def delete_user(db: Session, username):
     return schema.BasicResponse(msg="Success")
 
 
-def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None,
-                           for_pandas=False):
+def get_overdue_rush_local(
+    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False
+):
     if filters is None:
         filters = []
-    args = [Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code, ExtraInfo.tags]
-    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id) \
-        .join(Vendor, Order.vendor_code == Vendor.vendor_code) \
+    args = [
+        Order.barcode,
+        Order.title,
+        Order.order_number,
+        Order.created_date,
+        Order.arrival_date,
+        Order.ips_code,
+        Order.ips,
+        Order.ips_date,
+        Order.library_note,
+        Order.vendor_code,
+        ExtraInfo.tags,
+    ]
+    query = (
+        db.query(*args)
+        .join(ExtraInfo, Order.id == ExtraInfo.id)
+        .join(Vendor, Order.vendor_code == Vendor.vendor_code)
         .filter(Order.arrival_date == None)
-    table_mapping = {
-        "ExtraInfo": ["tags"],
-        "default": "Order"
-    }
+    )
+    table_mapping = {"ExtraInfo": ["tags"], "default": "Order"}
 
-    suffix = text("""extra_info.tags like '%[Rush]%' and extra_info.tags like '%[Local]%'
-    and (((override_reminder_time is null) and (DATEDIFF(current_timestamp(), created_date) > notify_in))
-    or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)))
-                """.replace("\n", " "))
+    suffix = text(
+        """extra_info.tags like '%[Rush]%'
+        and extra_info.tags like '%[Local]%'
+        and (((override_reminder_time is null)
+        and (DATEDIFF(current_timestamp(), created_date) > notify_in))
+        or ((override_reminder_time is not null)
+        and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)))
+        """.replace(
+            "\n", " "
+        )
+    )
 
     fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
     filters.extend(fixed_filters)
 
-    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+    query, total_records = compile_query(
+        query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix
+    )
 
     if for_pandas:
         return query.statement
@@ -59,24 +82,52 @@ def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, fil
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
-def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
-    args = [CDLOrder.cdl_item_status, CDLOrder.order_request_date, CDLOrder.scanning_vendor_payment_date,
-            CDLOrder.pdf_delivery_date, CDLOrder.back_to_karms_date,
-            Order.barcode, Order.title, Order.order_number, Order.created_date, Order.arrival_date,
-            Order.ips_code, Order.ips, Order.ips_date, Order.library_note, Order.vendor_code,
-            ExtraInfo.override_reminder_time, ExtraInfo.checked]
+def get_overdue_cdl(
+    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False
+):
+    args = [
+        CDLOrder.cdl_item_status,
+        CDLOrder.order_request_date,
+        CDLOrder.scanning_vendor_payment_date,
+        CDLOrder.pdf_delivery_date,
+        CDLOrder.back_to_karms_date,
+        Order.barcode,
+        Order.title,
+        Order.order_number,
+        Order.created_date,
+        Order.arrival_date,
+        Order.ips_code,
+        Order.ips,
+        Order.ips_date,
+        Order.library_note,
+        Order.vendor_code,
+        ExtraInfo.override_reminder_time,
+        ExtraInfo.checked,
+    ]
     table_mapping = {
         "CDLOrder": [
-            "cdl_item_status", "order_request_date", "scanning_vendor_payment_date",
-            "pdf_delivery_date", "back_to_karms_date"
+            "cdl_item_status",
+            "order_request_date",
+            "scanning_vendor_payment_date",
+            "pdf_delivery_date",
+            "back_to_karms_date",
         ],
-        "default": "Order"
+        "default": "Order",
     }
-    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).filter(CDLOrder.pdf_delivery_date == None)
-    suffix = text("""datediff(current_timestamp(), order_request_date) > 30
-        and (checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time))))""")
+    query = (
+        db.query(*args)
+        .join(Order, CDLOrder.book_id == Order.id)
+        .filter(CDLOrder.pdf_delivery_date == None)
+    )
+    suffix = text(
+        """datediff(current_timestamp(), order_request_date) > 30
+        and (checked = 0 or (override_reminder_time is not null
+        and CURRENT_TIMESTAMP() > override_reminder_time))))"""
+    )
 
-    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+    query, total_records = compile_query(
+        query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix
+    )
 
     if for_pandas:
         return query.statement
@@ -84,26 +135,49 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
-def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False):
+def get_sh_order_report(
+    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False
+):
     if filters is None:
         filters = []
-    args = [Order.order_number, Order.barcode, Order.title, Order.created_date, Order.arrival_date,
-            Order.arrival_status,
-            Order.arrival_operator, Order.order_status, Order.order_status_update_date, Order.ips_code, Order.ips,
-            Order.ips_update_date, Order.ips_code_operator, Order.material, Order.material_type, Order.vendor_code,
-            Order.library_note, Order.invoice_status, Order.collection, Order.item_status, Order.total_price, Order.bsn,
-            Order.sublibrary]
+    args = [
+        Order.order_number,
+        Order.barcode,
+        Order.title,
+        Order.created_date,
+        Order.arrival_date,
+        Order.arrival_status,
+        Order.arrival_operator,
+        Order.order_status,
+        Order.order_status_update_date,
+        Order.ips_code,
+        Order.ips,
+        Order.ips_update_date,
+        Order.ips_code_operator,
+        Order.material,
+        Order.material_type,
+        Order.vendor_code,
+        Order.library_note,
+        Order.invoice_status,
+        Order.collection,
+        Order.item_status,
+        Order.total_price,
+        Order.bsn,
+        Order.sublibrary,
+    ]
     query = db.query(*args)
     table_mapping = {"default": "Order"}
     suffix = text("""datediff(current_timestamp(), created_date) <= 1095""")
     fixed_filters = [
         schema.FieldFilter(op="like", col="sublibrary", val="NSHNG"),
-        schema.FieldFilter(op="like", col="order_type", val="M")
+        schema.FieldFilter(op="like", col="order_type", val="M"),
     ]
     fixed_sorter = schema.SortCol(col="created_date", desc=True)
     filters.extend(fixed_filters)
     sorter = sorter or fixed_sorter
-    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+    query, total_records = compile_query(
+        query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix
+    )
 
     if for_pandas:
         return query.statement
@@ -111,59 +185,116 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
-def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
-    args = [*Order.__table__.c, TrackingNote.tracking_note, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked,
-            ExtraInfo.attention, ExtraInfo.override_reminder_time]
-    query = db.query(*args).join(ExtraInfo, Order.id == ExtraInfo.id) \
+def get_all_orders(
+    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None
+):
+    args = [
+        *Order.__table__.c,
+        TrackingNote.tracking_note,
+        ExtraInfo.tags,
+        ExtraInfo.cdl_flag,
+        ExtraInfo.checked,
+        ExtraInfo.attention,
+        ExtraInfo.override_reminder_time,
+    ]
+    query = (
+        db.query(*args)
+        .join(ExtraInfo, Order.id == ExtraInfo.id)
         .join(TrackingNote, Order.id == TrackingNote.book_id)
-    table_mapping = {
-        "ExtraInfo": ["tags", "checked", "attention"],
-        "default": "Order"
-    }
+    )
+    table_mapping = {"ExtraInfo": ["tags", "checked", "attention"], "default": "Order"}
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
-    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
-                                   fuzzy_cols=fuzzy_cols)
+    query, total_records = compile_query(
+        query,
+        filters,
+        table_mapping,
+        sorter,
+        Order.id,
+        start_idx,
+        limit,
+        fuzzy=fuzzy,
+        fuzzy_cols=fuzzy_cols,
+    )
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_order_detail(db: Session, book_id: int):
-    query = db.query(Order, ExtraInfo, TrackingNote) \
-        .join(ExtraInfo, Order.id == ExtraInfo.id).join(TrackingNote, Order.id == TrackingNote.book_id) \
-        .filter(Order.id == book_id).first()
+    query = (
+        db.query(Order, ExtraInfo, TrackingNote)
+        .join(ExtraInfo, Order.id == ExtraInfo.id)
+        .join(TrackingNote, Order.id == TrackingNote.book_id)
+        .filter(Order.id == book_id)
+        .first()
+    )
     return query
 
 
-def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None):
-    args = [*CDLOrder.__table__.c, *Order.__table__.c, ExtraInfo.tags, ExtraInfo.cdl_flag, ExtraInfo.checked,
-            ExtraInfo.attention, ExtraInfo.override_reminder_time, TrackingNote.tracking_note]
-    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id) \
-        .join(ExtraInfo, ExtraInfo.id == Order.id).join(TrackingNote, TrackingNote.book_id == Order.id)
+def get_all_cdl(
+    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None
+):
+    args = [
+        *CDLOrder.__table__.c,
+        *Order.__table__.c,
+        ExtraInfo.tags,
+        ExtraInfo.cdl_flag,
+        ExtraInfo.checked,
+        ExtraInfo.attention,
+        ExtraInfo.override_reminder_time,
+        TrackingNote.tracking_note,
+    ]
+    query = (
+        db.query(*args)
+        .join(Order, CDLOrder.book_id == Order.id)
+        .join(ExtraInfo, ExtraInfo.id == Order.id)
+        .join(TrackingNote, TrackingNote.book_id == Order.id)
+    )
     table_mapping = {
         "ExtraInfo": ["tags"],
-        "CDLOrder": ["cdl_item_status", "order_request_date", "scanning_vendor_payment_date", "pdf_delivery_date",
-                     "circ_pdf_url", "back_to_karms_date"],
-        "default": "Order"
+        "CDLOrder": [
+            "cdl_item_status",
+            "order_request_date",
+            "scanning_vendor_payment_date",
+            "pdf_delivery_date",
+            "circ_pdf_url",
+            "back_to_karms_date",
+        ],
+        "default": "Order",
     }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
-    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
-                                   fuzzy_cols=fuzzy_cols)
+    query, total_records = compile_query(
+        query,
+        filters,
+        table_mapping,
+        sorter,
+        Order.id,
+        start_idx,
+        limit,
+        fuzzy=fuzzy,
+        fuzzy_cols=fuzzy_cols,
+    )
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
 
 def get_cdl_detail(db: Session, order_id: int):
-    query = db.query(CDLOrder, Order, ExtraInfo, TrackingNote).join(Order, CDLOrder.book_id == Order.id) \
-        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).join(TrackingNote, TrackingNote.book_id == Order.id) \
-        .filter(CDLOrder.book_id == order_id).first()
+    query = (
+        db.query(CDLOrder, Order, ExtraInfo, TrackingNote)
+        .join(Order, CDLOrder.book_id == Order.id)
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id)
+        .join(TrackingNote, TrackingNote.book_id == Order.id)
+        .filter(CDLOrder.book_id == order_id)
+        .first()
+    )
     return query
 
 
 def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
     cdl_dict = cdl_request.__dict__
-    del cdl_dict['tracking_note']
+    del cdl_dict["tracking_note"]
     cdl = CDLOrder(**cdl_dict)
     db.add(cdl)
-    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id) \
-        .update({'tags': ExtraInfo.tags + '[CDL]', 'cdl_flag': 1})
+    db.query(ExtraInfo).filter(ExtraInfo.id == cdl_request.book_id).update(
+        {"tags": ExtraInfo.tags + "[CDL]", "cdl_flag": 1}
+    )
     db.commit()
     return schema.BasicResponse(msg="Success")
 
@@ -171,7 +302,10 @@ def new_cdl_order(db: Session, cdl_request: schema.CDLRequest):
 def del_cdl_order(db: Session, book_id):
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
     db.delete(query)
-    sql = text('''UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;''' % book_id)
+    sql = text(
+        """UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;"""
+        % book_id
+    )
     db.execute(sql)
     db.commit()
     return schema.BasicResponse(msg="Success")
@@ -179,8 +313,8 @@ def del_cdl_order(db: Session, book_id):
 
 def update_cdl_order(db: Session, cdl: schema.CDLRequest):
     cdl_dict = cdl.__dict__
-    if cdl_dict.get('tracking_note', 'undefined') != 'undefined':
-        del cdl_dict['tracking_note']
+    if cdl_dict.get("tracking_note", "undefined") != "undefined":
+        del cdl_dict["tracking_note"]
     db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl_dict)
     db.commit()
     return schema.BasicResponse(msg="Success")
@@ -195,9 +329,12 @@ def mark_order_attention(db: Session, book_ids, direction):
 
 def mark_order_checked(db: Session, book_ids, direction, date):
     for book in book_ids:
-        db.query(ExtraInfo).filter(ExtraInfo.id == book) \
-            .update(
-            {ExtraInfo.checked: direction, ExtraInfo.override_reminder_time: date if direction is True else None})
+        db.query(ExtraInfo).filter(ExtraInfo.id == book).update(
+            {
+                ExtraInfo.checked: direction,
+                ExtraInfo.override_reminder_time: date if direction is True else None,
+            }
+        )
     db.commit()
     return schema.BasicResponse(msg="Success")
 
@@ -221,7 +358,9 @@ def update_tracking_note(db: Session, note: schema.TrackingNote):
 
 
 def get_starting_position(db: Session, barcode: int, order_number: str):
-    query = db.query(Order).filter(Order.barcode == barcode, Order.order_number == order_number).all()
+    query = (
+        db.query(Order).filter(Order.barcode == barcode, Order.order_number == order_number).all()
+    )
     return query[0].id if len(query) == 1 else -1
 
 

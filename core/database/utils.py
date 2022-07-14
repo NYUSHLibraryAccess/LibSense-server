@@ -1,7 +1,8 @@
-from core import schema
-from core.database.model import MAPPING
 from humps import decamelize
 from sqlalchemy import and_, or_
+
+from core import schema
+from core.database.model import MAPPING
 
 
 def compile_filters(query, filters, table_mapping):
@@ -16,7 +17,7 @@ def compile_filters(query, filters, table_mapping):
             if f.col == "tags":
                 and_flags = []
                 for t in f.val:
-                    and_flags.append(target_table.tags.like('%[' + t + ']%'))
+                    and_flags.append(target_table.tags.like("%[" + t + "]%"))
                 sql_filters.append(and_(*and_flags))
             else:
                 in_filters = [getattr(target_table, decamelize(f.col)).in_(f.val)]
@@ -25,9 +26,9 @@ def compile_filters(query, filters, table_mapping):
                     sql_filters.append(and_(*in_filters))
                 else:
                     sql_filters.append(*in_filters)
-                
+
         elif f.op == schema.FilterOperators.LIKE:
-            sql_filters.append(getattr(target_table, decamelize(f.col)).like('%' + f.val + '%'))
+            sql_filters.append(getattr(target_table, decamelize(f.col)).like("%" + f.val + "%"))
 
         elif f.op == schema.FilterOperators.BETWEEN:
             sql_filters.append(getattr(target_table, decamelize(f.col)).between(*f.val))
@@ -56,12 +57,23 @@ def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
 def compile_fuzzy(query, fuzzy, fuzzy_cols):
     fuzzy_filters = []
     for col in fuzzy_cols:
-        fuzzy_filters.append(col.like('%' + fuzzy + '%'))
+        fuzzy_filters.append(col.like("%" + fuzzy + "%"))
     query = query.filter(or_(*fuzzy_filters))
     return query
 
 
-def compile_query(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None, fuzzy=None, fuzzy_cols=None):
+def compile_query(
+    query,
+    filters=None,
+    table_mapping=None,
+    sorter=None,
+    default_key=None,
+    start_idx=None,
+    limit=None,
+    suffix=None,
+    fuzzy=None,
+    fuzzy_cols=None,
+):
     if filters and table_mapping:
         query = compile_filters(query, filters, table_mapping)
     if fuzzy and fuzzy_cols:
@@ -76,5 +88,3 @@ def compile_query(query, filters=None, table_mapping=None, sorter=None, default_
     if limit and limit != -1:
         query = query.limit(limit)
     return query, total_records
-
-

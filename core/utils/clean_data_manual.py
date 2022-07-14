@@ -7,10 +7,12 @@ from Data import clean_data
 
 if __name__ == "__main__":
     if sys.argv[1] in ["-h", "--help"]:
-        print("""
+        print(
+            """
         USAGE: python Data.py [INPUT_FILE_PATH]
         OUTPUT: CLEANED CSV FILE TO CURRENT PATH
-        """)
+        """
+        )
     file_path = sys.argv[1]
     if not file_path.split(".")[-1] in ["xlsx", "xls"]:
         raise Exception("Please check file path. Only absolute path with .xls, .xlsx accepted")
@@ -33,7 +35,9 @@ if __name__ == "__main__":
         this_df["Z68_ORDER_NUMBER"] = this_df["Z68_ORDER_NUMBER"].astype(int)
         this_df = this_df.sort_values(by=["Z68_ORDER_NUMBER"])
         this_df["Z68_ORDER_NUMBER"] = this_df["Z68_ORDER_NUMBER"].astype(str)
-        this_df["Z68_ORDER_NUMBER"] = this_df["Z68_ORDER_NUMBER"].apply(lambda x: "NYUSH" + str(year) + x)
+        this_df["Z68_ORDER_NUMBER"] = this_df["Z68_ORDER_NUMBER"].apply(
+            lambda x: "NYUSH" + str(year) + x
+        )
         del this_df["this_year"]
         year_dict[year] = this_df
 

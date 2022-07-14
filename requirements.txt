@@ -39,3 +39,5 @@ starlette-session~=0.4.2
 pylint~=2.14.4
 pylint-quotes~=0.2.3
 black~=22.6.0
+starlette~=0.17.1
+humps~=0.2.2

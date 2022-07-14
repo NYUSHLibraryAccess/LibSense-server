@@ -4,9 +4,17 @@ load-plugins=pylint_quotes
 
 [MESSAGE CONTROL]
 disable=
+    missing-class-docstring,
     missing-module-docstring,
     missing-function-docstring,
-    consider-using-f-string
+    consider-using-f-string,
+    unspecified-encoding,
+    too-few-public-methods,
+    raise-missing-from,
+    wrong-import-order
 
 [BASICS]
 argument-naming-style=any
+string-quote=double
+triple-quote=double
+docstring-quote=double

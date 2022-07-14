@@ -39,7 +39,9 @@ class Order(Base):
 
 class CDLOrder(Base):
     __tablename__ = "cdl_info"
-    book_id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True)
+    book_id = Column(
+        Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True
+    )
     cdl_item_status = Column(String)
     order_request_date = Column(DateTime)
     order_purchased_date = Column(DateTime)
@@ -99,5 +101,5 @@ MAPPING = {
     "CDLOrder": CDLOrder,
     "TrackingNote": TrackingNote,
     "Vendor": Vendor,
-    "ExtraInfo": ExtraInfo
+    "ExtraInfo": ExtraInfo,
 }
