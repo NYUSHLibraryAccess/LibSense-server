@@ -2,7 +2,7 @@ from core import schema
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from core.database.model import *
-from core.database.utils import compile
+from core.database.utils import compile_query
 
 
 def login(db: Session, username, password):
@@ -51,7 +51,7 @@ def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, fil
     fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
     filters.extend(fixed_filters)
 
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
 
     if for_pandas:
         return query.statement
@@ -76,7 +76,7 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
     suffix = text("""datediff(current_timestamp(), order_request_date) > 30
         and (checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time))))""")
 
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
 
     if for_pandas:
         return query.statement
@@ -103,7 +103,7 @@ def get_sh_order_report(db: Session, start_idx: int = 0, limit: int = 10, filter
     fixed_sorter = schema.SortCol(col="created_date", desc=True)
     filters.extend(fixed_filters)
     sorter = sorter or fixed_sorter
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
+    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
 
     if for_pandas:
         return query.statement
@@ -121,7 +121,7 @@ def get_all_orders(db: Session, start_idx: int = 0, limit: int = 10, filters=Non
         "default": "Order"
     }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
+    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
                                    fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 
@@ -145,7 +145,7 @@ def get_all_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=None, 
         "default": "Order"
     }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
-    query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
+    query, total_records = compile_query(query, filters, table_mapping, sorter, Order.id, start_idx, limit, fuzzy=fuzzy,
                                    fuzzy_cols=fuzzy_cols)
     return query.all(), start_idx * limit + total_records if total_records != 0 else 0
 

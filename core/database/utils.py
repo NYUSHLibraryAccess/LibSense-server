@@ -60,7 +60,8 @@ def compile_fuzzy(query, fuzzy, fuzzy_cols):
     query = query.filter(or_(*fuzzy_filters))
     return query
 
-def compile(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None, fuzzy=None, fuzzy_cols=None):
+
+def compile_query(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None, fuzzy=None, fuzzy_cols=None):
     if filters and table_mapping:
         query = compile_filters(query, filters, table_mapping)
     if fuzzy and fuzzy_cols:
