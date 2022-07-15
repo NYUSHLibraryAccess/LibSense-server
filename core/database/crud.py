@@ -268,6 +268,7 @@ def get_local_rush_pending(db: Session):
         from nyc_orders as o join extra_info as e join vendors as v
         on e.id = o.id and o.vendor_code = v.vendor_code
         where (arrival_date is null)
+          and o.order_status != 'VC'
           and e.checked = 0 
           and e.tags like '%%[Rush]%%'
           and e.tags like '%%[Local]%%'
@@ -306,6 +307,7 @@ def get_average_days(db: Session):
         floor(min(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
+        and order_status != 'VC'
         and tags like '%%[Rush]%%'
         and tags like '%%[NY]%%';
     """
@@ -315,6 +317,7 @@ def get_average_days(db: Session):
         min(floor(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
+        and order_status != 'VC'
         and tags like '%%[Rush]%%'
         and tags like '%%[Local]%%';
     """
