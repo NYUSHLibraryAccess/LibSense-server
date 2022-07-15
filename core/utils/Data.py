@@ -231,7 +231,7 @@ def data_ingestion(db: Session, path: str = 'utils/IDX_OUTPUT_NEW_REPORT.xlsx'):
     del to_insert["id"]
     del to_insert["checked"]
     to_insert = pd.concat([to_insert, sorted_curr.iloc[end_idx + 1:]])
-    to_insert = to_insert[(to_insert["Z68_ORDER_STATUS"] != "XXX") & (to_insert["Z68_ORDER_STATUS"] != "VC")]
+    to_insert = to_insert[(to_insert["Z68_ORDER_STATUS"] != "XXX")]
 
     check_curr = prepare_for_db(check_curr)
     to_insert = prepare_for_db(to_insert)

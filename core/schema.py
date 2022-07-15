@@ -156,7 +156,7 @@ class Order(CamelModel):
     id: int
     tags: Optional[List[Tags]]
     barcode: Optional[str]
-    title: str
+    title: Optional[str]
     order_number: str
     created_date: Optional[date]
     arrival_date: Optional[date]
