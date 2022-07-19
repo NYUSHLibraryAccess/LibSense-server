@@ -44,10 +44,10 @@ def get_overdue_rush_local(db: Session, start_idx: int = 0, limit: int = 10, fil
         "default": "Order"
     }
 
-    suffix = text("""extra_info.tags like '%[Rush]%' and extra_info.tags like '%[Local]%'
-    and (((override_reminder_time is null) and (DATEDIFF(current_timestamp(), created_date) > notify_in))
-    or ((override_reminder_time is not null) and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)))
-                """.replace("\n", " "))
+    suffix = text("""nyc_orders.order_status != 'VC'
+    and (((extra_info.override_reminder_time is null) and (DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in))
+    and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time)))
+    """.replace("\n", " "))
 
     fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
     filters.extend(fixed_filters)
@@ -72,8 +72,11 @@ def get_overdue_cdl(db: Session, start_idx: int = 0, limit: int = 10, filters=No
         ],
         "default": "Order"
     }
-    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id).filter(CDLOrder.pdf_delivery_date == None)
-    suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30""")
+    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id)\
+    .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.pdf_delivery_date == None)
+    suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30
+        and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null
+        and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))""")
 
     query, total_records = compile(query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix)
 
@@ -268,6 +271,7 @@ def get_local_rush_pending(db: Session):
         from nyc_orders as o join extra_info as e join vendors as v
         on e.id = o.id and o.vendor_code = v.vendor_code
         where (arrival_date is null)
+          and o.order_status != 'VC'
           and e.checked = 0 
           and e.tags like '%%[Rush]%%'
           and e.tags like '%%[Local]%%'
@@ -282,9 +286,10 @@ def get_local_rush_pending(db: Session):
 def get_cdl_pending(db: Session):
     cdl = """
         select count(book_id)
-        from cdl_info
+        from cdl_info inner join extra_info on cdl_info.book_id = extra_info.id
         where pdf_delivery_date is null 
-        and datediff(current_timestamp(), order_request_date) > 30;
+        and datediff(current_timestamp(), order_request_date) > 30
+        and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time));
     """
     return db.execute(cdl.replace("\n", " ")).first()
 
@@ -306,6 +311,7 @@ def get_average_days(db: Session):
         floor(min(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
+        and order_status != 'VC'
         and tags like '%%[Rush]%%'
         and tags like '%%[NY]%%';
     """
@@ -315,6 +321,7 @@ def get_average_days(db: Session):
         min(floor(datediff(arrival_date, created_date))) as min
         from nyc_orders join extra_info ei on nyc_orders.id = ei.id
         where arrival_date is not null
+        and order_status != 'VC'
         and tags like '%%[Rush]%%'
         and tags like '%%[Local]%%';
     """
