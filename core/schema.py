@@ -310,6 +310,8 @@ class SystemUser(CamelModel):
 class LoginRequest(CamelModel):
     username: str
     password: str
+    remember: Optional[bool]
+    remember_test: Optional[bool]
 
 
 class NewSystemUser(SystemUser):

@@ -5,6 +5,7 @@ from .Vendor import Vendor
 from .Report import Report
 from fastapi import Body, APIRouter, Depends, HTTPException
 from core import schema
+from core.utils.dependencies import validate_auth
 from sqlalchemy.orm import Session
 from core.database.database import SessionLocal
 from core.database import crud
@@ -36,7 +37,7 @@ def get_root(body: dict = Body(...)):
     return {"msg": "Hello WMS"}
 
 
-@router.get("/overview", tags=["Overview"], response_model=schema.Overview)
+@router.get("/overview", tags=["Overview"], dependencies=[Depends(validate_auth)], response_model=schema.Overview)
 def get_overview(db: Session = Depends(get_db)):
     local_rush_pending = crud.get_local_rush_pending(db)[0]
     cdl_pending = crud.get_cdl_pending(db)[0]
