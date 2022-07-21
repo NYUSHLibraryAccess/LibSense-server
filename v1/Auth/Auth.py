@@ -20,7 +20,7 @@ def login(request: Request, response: Response, payload: schema.LoginRequest, db
     user_dict["remember"] = ts
     if payload.remember:
         response.set_cookie("_r", ts, max_age=86400)
-    if payload.remember_test:
+    elif payload.remember_test:
         response.set_cookie("_r", ts, max_age=30)
     else:
         response.set_cookie("_r", ts, max_age=None)
