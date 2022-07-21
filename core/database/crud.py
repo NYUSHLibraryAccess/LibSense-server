@@ -187,8 +187,8 @@ def get_all_orders(
     ]
     query = (
         db.query(*args)
-        .join(ExtraInfo, Order.id == ExtraInfo.id)
-        .join(TrackingNote, Order.id == TrackingNote.book_id)
+        .join(ExtraInfo, Order.id == ExtraInfo.id, isouter=True)
+        .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
     )
     table_mapping = {"ExtraInfo": ["tags", "checked", "attention"], "default": "Order"}
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
@@ -209,8 +209,8 @@ def get_all_orders(
 def get_order_detail(db: Session, book_id: int):
     query = (
         db.query(Order, ExtraInfo, TrackingNote)
-        .join(ExtraInfo, Order.id == ExtraInfo.id)
-        .join(TrackingNote, Order.id == TrackingNote.book_id)
+        .join(ExtraInfo, Order.id == ExtraInfo.id, isouter=True)
+        .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
         .filter(Order.id == book_id)
         .first()
     )
@@ -233,8 +233,8 @@ def get_all_cdl(
     query = (
         db.query(*args)
         .join(Order, CDLOrder.book_id == Order.id)
-        .join(ExtraInfo, ExtraInfo.id == Order.id)
-        .join(TrackingNote, TrackingNote.book_id == Order.id)
+        .join(ExtraInfo, ExtraInfo.id == Order.id, isouter=True)
+        .join(TrackingNote, TrackingNote.book_id == Order.id, isouter=True)
     )
     table_mapping = {
         "ExtraInfo": ["tags"],
@@ -267,8 +267,8 @@ def get_cdl_detail(db: Session, order_id: int):
     query = (
         db.query(CDLOrder, Order, ExtraInfo, TrackingNote)
         .join(Order, CDLOrder.book_id == Order.id)
-        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id)
-        .join(TrackingNote, TrackingNote.book_id == Order.id)
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id, isouter=True)
+        .join(TrackingNote, TrackingNote.book_id == Order.id, isouter=True)
         .filter(CDLOrder.book_id == order_id)
         .first()
     )
