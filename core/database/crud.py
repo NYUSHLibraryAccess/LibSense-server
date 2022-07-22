@@ -32,7 +32,12 @@ def delete_user(db: Session, username):
 
 
 def get_overdue_rush_local(
-    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False
+    db: Session,
+    start_idx: int = 0,
+    limit: int = 10,
+    filters=None,
+    sorter=None,
+    for_pandas=False
 ):
     if filters is None:
         filters = []
@@ -54,12 +59,14 @@ def get_overdue_rush_local(
         .join(ExtraInfo, Order.id == ExtraInfo.id)
         .join(Vendor, Order.vendor_code == Vendor.vendor_code)
         .filter(Order.arrival_date == None)
+        .filter(Order.order_status != "VC")
     )
     table_mapping = {"ExtraInfo": ["tags"], "default": "Order"}
 
-    suffix = text("""nyc_orders.order_status != 'VC'
-    and (((extra_info.override_reminder_time is null) and (DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in))
-    and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time)))
+    suffix = text("""(extra_info.override_reminder_time is null
+    and DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in)
+    and (extra_info.checked = 0 
+    or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time)))
     """.replace("\n", " "))
 
     fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
@@ -76,7 +83,12 @@ def get_overdue_rush_local(
 
 
 def get_overdue_cdl(
-    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False
+    db: Session,
+    start_idx: int = 0,
+    limit: int = 10,
+    filters=None,
+    sorter=None,
+    for_pandas=False
 ):
     args = [
         CDLOrder.cdl_item_status,
@@ -108,7 +120,7 @@ def get_overdue_cdl(
         "default": "Order",
     }
     query = db.query(*args).join(Order, CDLOrder.book_id == Order.id)\
-    .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.pdf_delivery_date == None)
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.pdf_delivery_date == None)
     suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30
         and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null
         and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))""")
@@ -124,7 +136,12 @@ def get_overdue_cdl(
 
 
 def get_sh_order_report(
-    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, for_pandas=False
+    db: Session,
+    start_idx: int = 0,
+    limit: int = 10,
+    filters=None,
+    sorter=None,
+    for_pandas=False
 ):
     if filters is None:
         filters = []
@@ -174,7 +191,12 @@ def get_sh_order_report(
 
 
 def get_all_orders(
-    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None
+    db: Session,
+    start_idx: int = 0,
+    limit: int = 10,
+    filters=None,
+    sorter=None,
+    fuzzy=None
 ):
     args = [
         *Order.__table__.c,
@@ -218,7 +240,12 @@ def get_order_detail(db: Session, book_id: int):
 
 
 def get_all_cdl(
-    db: Session, start_idx: int = 0, limit: int = 10, filters=None, sorter=None, fuzzy=None
+    db: Session,
+    start_idx: int = 0,
+    limit: int = 10,
+    filters=None,
+    sorter=None,
+    fuzzy=None
 ):
     args = [
         *CDLOrder.__table__.c,
