@@ -2,6 +2,7 @@ from core.schema import *
 from fastapi import Depends, APIRouter, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
+from core.database.utils import convert_sqlalchemy_objs_to_dict
 from core.utils.dependencies import get_db, validate_auth
 
 router = APIRouter(prefix="/orders", tags=["Order"], dependencies=[Depends(validate_auth)])
@@ -11,9 +12,9 @@ def get_tags(result_set):
     result_lst = []
     for row in result_set:
         row_dict = dict(row._mapping)
-        row_dict['tags'] = Tags.split_tags(row_dict['tags'])
-        if row_dict.get("cdl_flag") == 1 and "CDL" not in row_dict['tags']:
-            row_dict['tags'].append("CDL")
+        row_dict["tags"] = Tags.split_tags(row_dict["tags"])
+        if row_dict.get("cdl_flag") == 1 and "CDL" not in row_dict["tags"]:
+            row_dict["tags"].append("CDL")
         result_lst.append(row_dict)
     return result_lst
 
@@ -81,7 +82,7 @@ def update_or_add_note(note, body: PatchOrderRequest, db: Session):
 
 
 @router.post("/all-orders",
-             response_model=Union[PageableOrdersSet, PageableCDLOrdersSet],
+             response_model=Union[PageableCDLOrdersSet, PageableOrdersSet],
              response_model_exclude_unset=True)
 def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     if body.cdl_view:
@@ -93,7 +94,9 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return get_normal_orders(body, db)
 
 
-@router.get("/all-orders/detail", response_model=OrderDetail)
+@router.get("/all-orders/detail",
+            response_model=Union[CDLOrderDetail, OrderDetail],
+            response_model_exclude_unset=True)
 def get_order_detail(
         book_id: int = Query(None, alias="bookId"),
         cdl_view: bool = Query(False, alias="cdlView"),
@@ -110,9 +113,9 @@ def get_order_detail(
         extra_info.tags.append("CDL")
 
     if cdl_view:
-        return cdl.__dict__ | order.__dict__ | extra_info.__dict__ | tracking_note.__dict__
+        return convert_sqlalchemy_objs_to_dict(cdl, order, extra_info, tracking_note)
 
-    return order.__dict__ | extra_info.__dict__ | tracking_note.__dict__
+    return convert_sqlalchemy_objs_to_dict(order, extra_info, tracking_note)
 
 
 @router.patch("/all-orders/detail", response_model=BasicResponse)
@@ -127,13 +130,13 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
         tracking_note=body.tracking_note
     )
 
-    if body.cdl is not None:
+    if body.cdl and crud.get_cdl_detail(db, body.book_id):
         return update_cdl_order(note, body, db)
 
     return update_or_add_note(note, body, db)
 
 
-@router.post("/new-cdl", tags=["CDL Orders"], response_model=BasicResponse)
+@router.post("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
 def new_cdl_order(request: Request, body: PatchOrderRequest, db: Session = Depends(get_db)):
     if body.cdl is not None:
         if body.tracking_note:
@@ -149,7 +152,7 @@ def new_cdl_order(request: Request, body: PatchOrderRequest, db: Session = Depen
     raise HTTPException(status_code=400, detail="Failed to create CDL order.")
 
 
-@router.delete("/del-cdl", tags=["CDL Orders"], response_model=BasicResponse)
+@router.delete("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
 def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     return crud.del_cdl_order(db, book_id)
 
@@ -162,4 +165,3 @@ def mark_check(body: CheckedRequest, db: Session = Depends(get_db)):
 @router.post("/attention")
 def mark_attention(body: AttentionRequest, db: Session = Depends(get_db)):
     return crud.mark_order_attention(db, body.id, body.attention)
-

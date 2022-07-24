@@ -2,6 +2,7 @@ from humps import decamelize
 from sqlalchemy import and_, or_
 
 from core import schema
+from core.database.database import Base
 from core.database.model import MAPPING
 
 
@@ -88,3 +89,11 @@ def compile_query(
     if limit and limit != -1:
         query = query.limit(limit)
     return query, total_records
+
+
+def convert_sqlalchemy_objs_to_dict(*args):
+    d = {}
+    for i in args:
+        if isinstance(i, Base):
+            d.update(i.__dict__)
+    return d

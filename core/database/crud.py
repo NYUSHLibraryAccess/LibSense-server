@@ -271,13 +271,13 @@ def get_all_cdl(
     return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
 
-def get_cdl_detail(db: Session, order_id: int):
+def get_cdl_detail(db: Session, book_id: int):
     query = (
         db.query(CDLOrder, Order, ExtraInfo, TrackingNote)
         .join(Order, CDLOrder.book_id == Order.id)
         .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id, isouter=True)
         .join(TrackingNote, TrackingNote.book_id == Order.id, isouter=True)
-        .filter(CDLOrder.book_id == order_id)
+        .filter(CDLOrder.book_id == book_id)
         .first()
     )
     return query
