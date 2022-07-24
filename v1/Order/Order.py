@@ -18,24 +18,62 @@ def get_tags(result_set):
     return result_lst
 
 
-@router.post("/all-orders", response_model=PageableOrdersSet)
-def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
-    page_index = body.page_index
-    page_size = body.page_size
-    filters = body.filters
-    sorter = body.sorter
-    fuzzy = body.fuzzy
-
-    result_set, total_records = crud.get_all_orders(db, page_index, page_size, filters=filters, sorter=sorter,
-                                                    fuzzy=fuzzy)
+def compile_result(result_set, total_records, body: PageableOrderRequest):
     result_lst = get_tags(result_set)
     pageable_set = {
-        'page_index': page_index,
-        'page_limit': page_size,
-        'total_records': total_records,
-        'result': result_lst
+        "page_index": body.page_index,
+        "page_limit": body.page_size,
+        "total_records": total_records,
+        "result": result_lst
     }
     return PageableOrdersSet(**pageable_set)
+
+
+def compile_cdl_result(result_set, total_records, body: PageableOrderRequest):
+    result_lst = get_tags(result_set)
+    for idx in range(len(result_lst)):
+        result_lst[idx]["cdl_item_status"] = [result_lst[idx]["cdl_item_status"]]
+
+    pageable_set = {
+        "page_index": body.page_index,
+        "page_limit": body.page_size,
+        "total_records": total_records,
+        "result": result_lst
+    }
+    return PageableCDLOrdersSet(**pageable_set)
+
+
+def get_normal_orders(body: PageableOrderRequest, db: Session):
+    result_set, total_records = crud.get_all_orders(db, **body.__dict__)
+    return compile_result(result_set, total_records, body)
+
+
+def get_cdl_orders(body: PageableOrderRequest, db: Session):
+    result_set, total_records = crud.get_all_cdl(db, **body.__dict__)
+    return compile_cdl_result(result_set, total_records, body)
+
+
+def get_pending_cdl_orders(body: PageableOrderRequest, db: Session):
+    result_set, total_records = crud.get_overdue_cdl(db, for_pandas=False, **body.__dict__)
+    return compile_cdl_result(result_set, total_records, body)
+
+
+def get_pending_rush_local_orders(body: PageableOrderRequest, db: Session):
+    result_set, total_records = crud.get_overdue_rush_local(db, for_pandas=False, **body.__dict__)
+    return compile_result(result_set, total_records, body)
+
+
+@router.post("/all-orders",
+             response_model=Union[PageableOrdersSet, PageableCDLOrdersSet],
+             response_model_exclude_unset=True)
+def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
+    if body.cdl_view:
+        return get_cdl_orders(body, db)
+    if body.pending_rush_local:
+        return get_pending_rush_local_orders(body, db)
+    if body.pending_cdl:
+        return get_pending_cdl_orders(body, db)
+    return get_normal_orders(body, db)
 
 
 @router.get("/all-orders/detail", response_model=OrderDetail)
@@ -80,7 +118,7 @@ def new_cdl_order(request: Request, body: CDLRequest, db: Session = Depends(get_
 
 
 @router.post("/cdl-orders", response_model=PageableCDLOrdersSet, tags=["CDL Orders"])
-def get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
+def _DEPRECATED_get_cdl_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     page_index = body.page_index
     page_size = body.page_size
     filters = body.filters

@@ -33,81 +33,67 @@ def delete_user(db: Session, username):
 
 def get_overdue_rush_local(
     db: Session,
-    start_idx: int = 0,
-    limit: int = 10,
+    page_index: int = 0,
+    page_size: int = 10,
     filters=None,
     sorter=None,
-    for_pandas=False
+    for_pandas=False,
+    **kwargs
 ):
     if filters is None:
         filters = []
     args = [
-        Order.barcode,
-        Order.title,
-        Order.order_number,
-        Order.created_date,
-        Order.arrival_date,
-        Order.ips_code,
-        Order.ips,
-        Order.ips_date,
-        Order.library_note,
-        Order.vendor_code,
-        ExtraInfo.tags,
+        *Order.__table__.c,
+        *ExtraInfo.__table__.c,
+        TrackingNote.tracking_note,
     ]
     query = (
         db.query(*args)
         .join(ExtraInfo, Order.id == ExtraInfo.id)
         .join(Vendor, Order.vendor_code == Vendor.vendor_code)
+        .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
         .filter(Order.arrival_date == None)
         .filter(Order.order_status != "VC")
     )
-    table_mapping = {"ExtraInfo": ["tags"], "default": "Order"}
+    table_mapping = {
+        "ExtraInfo": ["tags", "checked", "attention"],
+        "TrackingNote": ["tracking_note"],
+        "default": "Order"
+    }
 
     suffix = text("""(extra_info.override_reminder_time is null
     and DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in)
     and (extra_info.checked = 0 
-    or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time)))
+    or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time))
     """.replace("\n", " "))
 
     fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
     filters.extend(fixed_filters)
 
     query, total_records = compile_query(
-        query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix
+        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
     )
 
     if for_pandas:
         return query.statement
 
-    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+    return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
 
 def get_overdue_cdl(
     db: Session,
-    start_idx: int = 0,
-    limit: int = 10,
+    page_index: int = 0,
+    page_size: int = 10,
     filters=None,
     sorter=None,
-    for_pandas=False
+    for_pandas=False,
+    **kwargs
 ):
     args = [
-        CDLOrder.cdl_item_status,
-        CDLOrder.order_request_date,
-        CDLOrder.scanning_vendor_payment_date,
-        CDLOrder.pdf_delivery_date,
-        CDLOrder.back_to_karms_date,
-        Order.barcode,
-        Order.title,
-        Order.order_number,
-        Order.created_date,
-        Order.arrival_date,
-        Order.ips_code,
-        Order.ips,
-        Order.ips_date,
-        Order.library_note,
-        Order.vendor_code,
-        ExtraInfo.override_reminder_time,
-        ExtraInfo.checked,
+        *CDLOrder.__table__.c,
+        *Order.__table__.c,
+        *ExtraInfo.__table__.c,
+        TrackingNote.tracking_note,
     ]
     table_mapping = {
         "CDLOrder": [
@@ -117,61 +103,57 @@ def get_overdue_cdl(
             "pdf_delivery_date",
             "back_to_karms_date",
         ],
+        "ExtraInfo": ["tags", "checked", "attention"],
+        "TrackingNote": ["tracking_note"],
         "default": "Order",
     }
-    query = db.query(*args).join(Order, CDLOrder.book_id == Order.id)\
-        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id).filter(CDLOrder.pdf_delivery_date == None)
+    query = (
+        db.query(*args)
+        .join(Order, CDLOrder.book_id == Order.id)
+        .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id)
+        .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
+        .filter(CDLOrder.pdf_delivery_date == None)
+    )
     suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30
         and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null
         and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))""")
 
     query, total_records = compile_query(
-        query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix
+        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
     )
 
     if for_pandas:
         return query.statement
 
-    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+    return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
 
 def get_sh_order_report(
     db: Session,
-    start_idx: int = 0,
-    limit: int = 10,
+    page_index: int = 0,
+    page_size: int = 10,
     filters=None,
     sorter=None,
-    for_pandas=False
+    for_pandas=False,
+    **kwargs,
 ):
     if filters is None:
         filters = []
     args = [
-        Order.order_number,
-        Order.barcode,
-        Order.title,
-        Order.created_date,
-        Order.arrival_date,
-        Order.arrival_status,
-        Order.arrival_operator,
-        Order.order_status,
-        Order.order_status_update_date,
-        Order.ips_code,
-        Order.ips,
-        Order.ips_update_date,
-        Order.ips_code_operator,
-        Order.material,
-        Order.material_type,
-        Order.vendor_code,
-        Order.library_note,
-        Order.invoice_status,
-        Order.collection,
-        Order.item_status,
-        Order.total_price,
-        Order.bsn,
-        Order.sublibrary,
+        *Order.__table__.c,
+        *ExtraInfo.__table__.c,
+        TrackingNote.tracking_note,
     ]
-    query = db.query(*args)
-    table_mapping = {"default": "Order"}
+    query = (
+        db.query(*args)
+        .join(ExtraInfo, Order.id == ExtraInfo.id)
+        .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
+    )
+    table_mapping = {
+        "ExtraInfo": ["tags", "checked", "attention"],
+        "TrackingNote": ["tracking_note"],
+        "default": "Order"
+    }
     suffix = text("""datediff(current_timestamp(), created_date) <= 1095""")
     fixed_filters = [
         schema.FieldFilter(op="like", col="sublibrary", val="NSHNG"),
@@ -181,38 +163,39 @@ def get_sh_order_report(
     filters.extend(fixed_filters)
     sorter = sorter or fixed_sorter
     query, total_records = compile_query(
-        query, filters, table_mapping, sorter, Order.id, start_idx, limit, suffix
+        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
     )
 
     if for_pandas:
         return query.statement
 
-    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+    return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
 
 def get_all_orders(
     db: Session,
-    start_idx: int = 0,
-    limit: int = 10,
+    page_index: int = 0,
+    page_size: int = 10,
     filters=None,
     sorter=None,
-    fuzzy=None
+    fuzzy=None,
+    **kwargs
 ):
     args = [
         *Order.__table__.c,
+        *ExtraInfo.__table__.c,
         TrackingNote.tracking_note,
-        ExtraInfo.tags,
-        ExtraInfo.cdl_flag,
-        ExtraInfo.checked,
-        ExtraInfo.attention,
-        ExtraInfo.override_reminder_time,
     ]
     query = (
         db.query(*args)
         .join(ExtraInfo, Order.id == ExtraInfo.id, isouter=True)
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
     )
-    table_mapping = {"ExtraInfo": ["tags", "checked", "attention"], "default": "Order"}
+    table_mapping = {
+        "ExtraInfo": ["tags", "checked", "attention"],
+        "TrackingNote": ["tracking_note"],
+        "default": "Order"
+    }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
     query, total_records = compile_query(
         query,
@@ -220,12 +203,12 @@ def get_all_orders(
         table_mapping,
         sorter,
         Order.id,
-        start_idx,
-        limit,
+        page_index,
+        page_size,
         fuzzy=fuzzy,
         fuzzy_cols=fuzzy_cols,
     )
-    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+    return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
 
 def get_order_detail(db: Session, book_id: int):
@@ -241,20 +224,17 @@ def get_order_detail(db: Session, book_id: int):
 
 def get_all_cdl(
     db: Session,
-    start_idx: int = 0,
-    limit: int = 10,
+    page_index: int = 0,
+    page_size: int = 10,
     filters=None,
     sorter=None,
-    fuzzy=None
+    fuzzy=None,
+    **kwargs
 ):
     args = [
         *CDLOrder.__table__.c,
         *Order.__table__.c,
-        ExtraInfo.tags,
-        ExtraInfo.cdl_flag,
-        ExtraInfo.checked,
-        ExtraInfo.attention,
-        ExtraInfo.override_reminder_time,
+        *ExtraInfo.__table__.c,
         TrackingNote.tracking_note,
     ]
     query = (
@@ -264,7 +244,8 @@ def get_all_cdl(
         .join(TrackingNote, TrackingNote.book_id == Order.id, isouter=True)
     )
     table_mapping = {
-        "ExtraInfo": ["tags"],
+        "ExtraInfo": ["tags", "checked", "attention"],
+        "TrackingNote": ["tracking_note"],
         "CDLOrder": [
             "cdl_item_status",
             "order_request_date",
@@ -282,12 +263,12 @@ def get_all_cdl(
         table_mapping,
         sorter,
         Order.id,
-        start_idx,
-        limit,
+        page_index,
+        page_size,
         fuzzy=fuzzy,
         fuzzy_cols=fuzzy_cols,
     )
-    return query.all(), start_idx * limit + total_records if total_records != 0 else 0
+    return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
 
 def get_cdl_detail(db: Session, order_id: int):

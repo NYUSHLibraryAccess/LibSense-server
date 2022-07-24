@@ -218,6 +218,11 @@ class PageableOrderRequest(CamelModel):
     sorter: Optional[SortCol]
     fuzzy: Optional[str]
 
+    cdl_view: Optional[bool] = False
+    pending_rush_local: Optional[bool] = False
+    pending_cdl: Optional[bool] = False
+    prioritize: Optional[bool] = False
+
 
 class CDLOrder(Order):
     cdl_item_status: Optional[List[CDLStatus]]
