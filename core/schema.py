@@ -258,7 +258,10 @@ class CDLRequest(CamelModel):
 
 class PatchOrderRequest(CamelModel):
     book_id: int
-    tracking_note: str
+    tracking_note: Optional[str]
+    checked: Optional[bool] = "undefined"
+    attention: Optional[bool] = "undefined"
+    override_reminder_time: Optional[date] = "undefined"
     cdl: Optional[CDLRequest] = None
 
 

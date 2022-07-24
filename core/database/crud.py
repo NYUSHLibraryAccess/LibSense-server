@@ -308,10 +308,16 @@ def del_cdl_order(db: Session, book_id):
 
 
 def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
-    cdl_dict = body.cdl.__dict__
-    if cdl_dict.get("tracking_note", "undefined") != "undefined":
-        del cdl_dict["tracking_note"]
+    cdl_dict = { k: v for k, v in body.cdl.__dict__.items() if k != "tracking_note" }
     db.query(CDLOrder).filter(CDLOrder.book_id == body.book_id).update(cdl_dict)
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def update_normal_order(db: Session, body: schema.PatchOrderRequest):
+    cols = ["checked", "attention", "override_reminder_time"]
+    info_dict = {k: v for k, v in body.__dict__.items() if k in cols and v != "undefined"}
+    db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(info_dict)
     db.commit()
     return schema.BasicResponse(msg="Success")
 

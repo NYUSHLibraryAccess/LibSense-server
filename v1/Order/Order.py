@@ -64,16 +64,6 @@ def get_pending_rush_local_orders(body: PageableOrderRequest, db: Session):
     return compile_result(result_set, total_records, body)
 
 
-def update_cdl_order(note, body: PatchOrderRequest, db: Session):
-    try:
-        crud.update_cdl_order(db, body)
-        update_or_add_note(note, body, db)
-    except BaseException:
-        raise HTTPException(status_code=400, detail="Failed to update CDL order")
-
-    return BasicResponse(msg="Success")
-
-
 def update_or_add_note(note, body: PatchOrderRequest, db: Session):
     if crud.get_tracking_note(db, body.book_id):
         return crud.update_tracking_note(db, note)
@@ -120,8 +110,15 @@ def get_order_detail(
 
 @router.patch("/all-orders/detail", response_model=BasicResponse)
 def update_order(request: Request, body: PatchOrderRequest, db: Session = Depends(get_db)):
-    # for normal order, all other data are read-only from weekly NYC ORDER REPORT
-    # only tracking note is editable
+    crud.update_normal_order(db, body)
+    if body.cdl:
+        if crud.get_cdl_detail(db, body.book_id):
+            crud.update_cdl_order(db, body)
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Incorrect CDL request body. Did you try to update a normal order?"
+            )
 
     note = TrackingNote(
         book_id=body.book_id,
@@ -129,11 +126,9 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
         taken_by=request.session["username"],
         tracking_note=body.tracking_note
     )
+    update_or_add_note(note, body, db)
 
-    if body.cdl and crud.get_cdl_detail(db, body.book_id):
-        return update_cdl_order(note, body, db)
-
-    return update_or_add_note(note, body, db)
+    return BasicResponse(msg="Success")
 
 
 @router.post("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
