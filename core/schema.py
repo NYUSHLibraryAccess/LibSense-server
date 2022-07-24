@@ -110,11 +110,6 @@ class Message(CamelModel):
     book_related: Optional[str]
 
 
-class TrackingNoteRequest(CamelModel):
-    book_id: int
-    tracking_note: str
-
-
 class TrackingNote(CamelModel):
     book_id: int
     date: datetime
@@ -218,6 +213,11 @@ class PageableOrderRequest(CamelModel):
     sorter: Optional[SortCol]
     fuzzy: Optional[str]
 
+    cdl_view: Optional[bool] = False
+    pending_rush_local: Optional[bool] = False
+    pending_cdl: Optional[bool] = False
+    prioritize: Optional[bool] = False
+
 
 class CDLOrder(Order):
     cdl_item_status: Optional[List[CDLStatus]]
@@ -240,7 +240,6 @@ class CDLOrderDetail(CDLOrder, OrderDetail):
 
 
 class CDLRequest(CamelModel):
-    book_id: int
     cdl_item_status: Optional[CDLStatus]
     order_request_date: Optional[date]
     scanning_vendor_payment_date: Optional[date]
@@ -255,7 +254,12 @@ class CDLRequest(CamelModel):
     file_password: Optional[str]
     author: Optional[str]
     pages: Optional[str]
-    tracking_note: Optional[str]
+
+
+class PatchOrderRequest(CamelModel):
+    book_id: int
+    tracking_note: str
+    cdl: Optional[CDLRequest] = None
 
 
 class PageableCDLOrdersSet(PageableResultSet):

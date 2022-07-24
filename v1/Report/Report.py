@@ -42,11 +42,12 @@ def send_report(payload: SendReportRequest, db: Session = Depends(get_db)):
             df.to_csv(file_path, index=False)
             attachments[rt] = file_path
 
-    service.send_message(payload.email, payload.username, count, attachments)
-    
-    files = glob.glob("temp/*")
-    for f in files:
-        os.remove(f)
+    if os.getenv("LIBSENSE_ENV", "Prod") == "Prod":
+        service.send_message(payload.email, payload.username, count, attachments)
+
+        files = glob.glob("temp/*")
+        for f in files:
+            os.remove(f)
     
     return {"msg": "Successfully sent report."}
 
