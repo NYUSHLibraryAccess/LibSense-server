@@ -307,11 +307,11 @@ def del_cdl_order(db: Session, book_id):
     return schema.BasicResponse(msg="Success")
 
 
-def update_cdl_order(db: Session, cdl: schema.CDLRequest):
-    cdl_dict = cdl.__dict__
+def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
+    cdl_dict = body.cdl.__dict__
     if cdl_dict.get("tracking_note", "undefined") != "undefined":
         del cdl_dict["tracking_note"]
-    db.query(CDLOrder).filter(CDLOrder.book_id == cdl.book_id).update(cdl_dict)
+    db.query(CDLOrder).filter(CDLOrder.book_id == body.book_id).update(cdl_dict)
     db.commit()
     return schema.BasicResponse(msg="Success")
 
