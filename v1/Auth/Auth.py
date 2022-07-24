@@ -36,7 +36,7 @@ def logout(request: Request, response: Response):
     return {"msg": "Successfully logged out"}
 
 
-@router.get("/all_users", dependencies=[Depends(validate_auth)], response_model=List[schema.SystemUser])
+@router.get("/all-users", dependencies=[Depends(validate_auth)], response_model=List[schema.SystemUser])
 def all_users(request: Request, db: Session = Depends(get_db)):
     if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -45,7 +45,7 @@ def all_users(request: Request, db: Session = Depends(get_db)):
         return crud.all_users(db)
 
 
-@router.post("/add_user", response_model=schema.SystemUser, dependencies=[Depends(validate_auth)])
+@router.post("/add-user", response_model=schema.SystemUser, dependencies=[Depends(validate_auth)])
 def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depends(get_db)):
     if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -54,7 +54,7 @@ def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depe
         return crud.add_user(db, payload)
 
 
-@router.delete("/delete_user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
+@router.delete("/delete-user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
 def del_user(username: str, db: Session = Depends(get_db)):
     return crud.delete_user(db, username)
 

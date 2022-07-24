@@ -66,7 +66,7 @@ def add_note(request: Request, body: TrackingNoteRequest, db: Session = Depends(
         return crud.add_tracking_note(db, note)
 
 
-@router.post("/cdl-orders/new_cdl", tags=["CDL Orders"], response_model=BasicResponse)
+@router.post("/cdl-orders/new-cdl", tags=["CDL Orders"], response_model=BasicResponse)
 def new_cdl_order(request: Request, body: CDLRequest, db: Session = Depends(get_db)):
     if body.tracking_note:
         note = TrackingNote(
