@@ -206,17 +206,26 @@ class PageableOrdersSet(PageableResultSet):
     result: List[OrderDetail]
 
 
+class OrderViews(CamelModel):
+    cdl_view: Optional[bool] = False
+    pending_rush_local: Optional[bool] = False
+    pending_cdl: Optional[bool] = False
+    prioritize: Optional[bool] = False
+
+
 class PageableOrderRequest(CamelModel):
     page_index: Optional[int] = 0
     page_size: Optional[int] = 10
     filters: Optional[List[FieldFilter]]
     sorter: Optional[SortCol]
     fuzzy: Optional[str]
+    view: Optional[OrderViews]
 
-    cdl_view: Optional[bool] = False
-    pending_rush_local: Optional[bool] = False
-    pending_cdl: Optional[bool] = False
-    prioritize: Optional[bool] = False
+
+class Preset(CamelModel):
+    preset_id: int
+    filters: List[Filters]
+    view: OrderViews
 
 
 class CDLOrder(Order):
