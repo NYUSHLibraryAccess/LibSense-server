@@ -56,7 +56,8 @@ class PhysicalCopyStatus(str, Enum):
 class FilterOperators(str, Enum):
     IN = "in"
     LIKE = "like"
-    BETWEEN = "between"
+    EQUAL = "eq"  # only used in preset so far.
+    BETWEEN = "between "
     GREATER = "greater"
     SMALLER = "smaller"
 
@@ -72,6 +73,11 @@ class EnumRole(str, Enum):
     USER = "User"
 
 
+class EnumPresetTypes(str, Enum):
+    FILTER = "filter"
+    VIEW = "view"
+
+
 class BasicResponse(CamelModel):
     msg: Optional[str] = "Success"
 
@@ -80,14 +86,6 @@ class FieldFilter(CamelModel):
     op: FilterOperators
     col: str
     val: Union[str, List]
-
-
-class DateRangeFilter(FieldFilter):
-    val: conlist(Union[date, None], min_items=2, max_items=2)
-
-
-class Filters(CamelModel):
-    filters: Union[DateRangeFilter, FieldFilter]
 
 
 class SortCol(CamelModel):
@@ -219,13 +217,25 @@ class PageableOrderRequest(CamelModel):
     filters: Optional[List[FieldFilter]]
     sorter: Optional[SortCol]
     fuzzy: Optional[str]
-    view: Optional[OrderViews]
+
+    cdl_view: Optional[bool] = False
+    pending_rush_local: Optional[bool] = False
+    pending_cdl: Optional[bool] = False
+    prioritize: Optional[bool] = False
 
 
-class Preset(CamelModel):
+class PresetRequest(CamelModel):
+    preset_name: str
+    filters: List[FieldFilter] = []
+    views: OrderViews
+
+
+class UpdatePresetRequest(PresetRequest):
     preset_id: int
-    filters: List[Filters]
-    view: OrderViews
+
+
+class Preset(UpdatePresetRequest):
+    creator: str
 
 
 class CDLOrder(Order):

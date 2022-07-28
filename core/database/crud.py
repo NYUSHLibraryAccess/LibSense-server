@@ -1,9 +1,9 @@
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
 from core import schema
 from core.database.utils import compile_query
-from core.database.model import Order, ExtraInfo, TrackingNote, CDLOrder, User, Vendor
+from core.database.model import Order, ExtraInfo, TrackingNote, CDLOrder, User, Vendor, Preset
 
 
 def login(db: Session, username, password):
@@ -38,7 +38,7 @@ def get_overdue_rush_local(
     filters=None,
     sorter=None,
     for_pandas=False,
-    **kwargs
+    **kwargs,
 ):
     if filters is None:
         filters = []
@@ -58,14 +58,16 @@ def get_overdue_rush_local(
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
         "TrackingNote": ["tracking_note"],
-        "default": "Order"
+        "default": "Order",
     }
 
-    suffix = text("""(extra_info.override_reminder_time is null
+    suffix = text(
+        """(extra_info.override_reminder_time is null
     and DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in)
     and (extra_info.checked = 0 
     or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time))
-    """.replace("\n", " "))
+    """.replace("\n", " ")
+    )
 
     fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
     filters.extend(fixed_filters)
@@ -87,7 +89,7 @@ def get_overdue_cdl(
     filters=None,
     sorter=None,
     for_pandas=False,
-    **kwargs
+    **kwargs,
 ):
     args = [
         *CDLOrder.__table__.c,
@@ -114,9 +116,11 @@ def get_overdue_cdl(
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
         .filter(CDLOrder.pdf_delivery_date == None)
     )
-    suffix = text("""datediff(current_timestamp(), cdl_info.order_request_date) > 30
+    suffix = text(
+        """datediff(current_timestamp(), cdl_info.order_request_date) > 30
         and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null
-        and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))""")
+        and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))"""
+    )
 
     query, total_records = compile_query(
         query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
@@ -152,7 +156,7 @@ def get_sh_order_report(
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
         "TrackingNote": ["tracking_note"],
-        "default": "Order"
+        "default": "Order",
     }
     suffix = text("""datediff(current_timestamp(), created_date) <= 1095""")
     fixed_filters = [
@@ -179,7 +183,7 @@ def get_all_orders(
     filters=None,
     sorter=None,
     fuzzy=None,
-    **kwargs
+    **kwargs,
 ):
     args = [
         *Order.__table__.c,
@@ -194,7 +198,7 @@ def get_all_orders(
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
         "TrackingNote": ["tracking_note"],
-        "default": "Order"
+        "default": "Order",
     }
     fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
     query, total_records = compile_query(
@@ -229,7 +233,7 @@ def get_all_cdl(
     filters=None,
     sorter=None,
     fuzzy=None,
-    **kwargs
+    **kwargs,
 ):
     args = [
         *CDLOrder.__table__.c,
@@ -308,7 +312,7 @@ def del_cdl_order(db: Session, book_id):
 
 
 def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
-    cdl_dict = { k: v for k, v in body.cdl.__dict__.items() if k != "tracking_note" }
+    cdl_dict = {k: v for k, v in body.cdl.__dict__.items() if k != "tracking_note"}
     db.query(CDLOrder).filter(CDLOrder.book_id == body.book_id).update(cdl_dict)
     db.commit()
     return schema.BasicResponse(msg="Success")
@@ -403,6 +407,43 @@ def add_vendor(db: Session, vendor: schema.Vendor):
 def delete_vendor(db: Session, vendor_code):
     vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
     db.delete(vendor)
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def get_all_presets(db: Session, username):
+    return db.query(Preset).filter(Preset.creator == username).all()
+
+
+def add_preset(db: Session, preset, preset_id=None):
+    next_preset_id = preset_id or db.query(func.max(Preset.preset_id)).scalar() + 1
+    for preset_row in preset:
+        db.add(Preset(**preset_row, preset_id=next_preset_id))
+
+    db.commit()
+    return schema.BasicResponse(msg="Success")
+
+
+def update_preset(db: Session, preset, preset_id, username):
+    target_preset = (
+        db.query(Preset).filter(Preset.preset_id == preset_id).filter(Preset.creator == username)
+    )
+    if target_preset.count() == 0:
+        return -1
+
+    target_preset.delete()
+    for insert_preset in preset:
+        insert_preset["creator"] = username
+    return add_preset(db, preset, preset_id)
+
+
+def delete_preset(db: Session, preset_id, username):
+    target_preset = (
+        db.query(Preset).filter(Preset.preset_id == preset_id).filter(Preset.creator == username)
+    )
+    if target_preset.count() == 0:
+        return -1
+    target_preset.delete()
     db.commit()
     return schema.BasicResponse(msg="Success")
 

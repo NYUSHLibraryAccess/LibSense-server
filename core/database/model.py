@@ -100,11 +100,12 @@ class Preset(Base):
     __tablename__ = "presets"
     record_id = Column(Integer, primary_key=True, index=True, unique=True)
     preset_id = Column(Integer)
+    preset_name = Column(String)
+    creator = Column(String)
     type = Column(String)
     col = Column(String)
     val = Column(String)
     op = Column(String)
-    user = Column(String)
 
 
 MAPPING = {

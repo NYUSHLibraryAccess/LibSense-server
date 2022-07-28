@@ -3,6 +3,7 @@ from .Data import Data
 from .Order import Order
 from .Vendor import Vendor
 from .Report import Report
+from .Preset import Preset
 from fastapi import Body, APIRouter, Depends, HTTPException
 from core import schema
 from core.utils.dependencies import validate_auth
@@ -10,12 +11,14 @@ from sqlalchemy.orm import Session
 from core.database.database import SessionLocal
 from core.database import crud
 
+
 router = APIRouter(prefix='/v1')
 router.include_router(Auth.router)
 router.include_router(Data.router)
 router.include_router(Order.router)
 router.include_router(Vendor.router)
 router.include_router(Report.router)
+router.include_router(Preset.router)
 
 
 def get_db():
