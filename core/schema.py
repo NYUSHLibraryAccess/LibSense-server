@@ -85,7 +85,7 @@ class BasicResponse(CamelModel):
 class FieldFilter(CamelModel):
     op: FilterOperators
     col: str
-    val: Union[str, List]
+    val: Union[str, List, None]
 
 
 class SortCol(CamelModel):

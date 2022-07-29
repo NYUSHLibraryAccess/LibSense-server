@@ -24,12 +24,15 @@ def compile_filters(query, filters, table_mapping):
                 in_filters = [getattr(target_table, decamelize(f.col)).in_(f.val)]
                 if None in f.val:
                     in_filters.append((getattr(target_table, decamelize(f.col)) == None))
-                    sql_filters.append(and_(*in_filters))
+                    sql_filters.append(or_(*in_filters))
                 else:
                     sql_filters.append(*in_filters)
 
         elif f.op == schema.FilterOperators.LIKE:
-            sql_filters.append(getattr(target_table, decamelize(f.col)).like("%" + f.val + "%"))
+            if f.val is None:
+                sql_filters.append(getattr(target_table, decamelize(f.col)) == None)
+            else:
+                sql_filters.append(getattr(target_table, decamelize(f.col)).like("%" + f.val + "%"))
 
         elif f.op == schema.FilterOperators.BETWEEN:
             sql_filters.append(getattr(target_table, decamelize(f.col)).between(*f.val))
