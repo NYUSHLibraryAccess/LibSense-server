@@ -55,8 +55,8 @@ def tag_finder(order_row, local_vendors):
     tags = []
     keywords = {
         "Rush": ['Request', 'Need', 'Hold', 'Notify', 'CDL', 'ILL', 'Course', 'Reserve', 'Ares', 'Semester', 'Term',
-                 'Spring', 'Summer', 'Fall', 'Winter', 'Faculty', 'By', 'For', '@', 'nyu', 'Reads', 'Dup', 'Duplicate',
-                 'Rep', 'Repl', 'Replacement', 'Rush', 'Possible', 'ASAP'],
+                 'Spring', 'Summer', 'Fall', 'Winter', 'Faculty', 'By', 'For', '@', 'nyu', 'Reads',
+                 'Rush', 'Possible', 'ASAP'],
         "CDL": ["CDL"],
         "ILL": ["ILL"],
         "Reserve": ["Course", "Reserve", "Course-Reserve"],
