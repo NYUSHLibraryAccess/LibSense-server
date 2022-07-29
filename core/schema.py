@@ -57,7 +57,7 @@ class FilterOperators(str, Enum):
     IN = "in"
     LIKE = "like"
     EQUAL = "eq"  # only used in preset so far.
-    BETWEEN = "between "
+    BETWEEN = "between"
     GREATER = "greater"
     SMALLER = "smaller"
 
