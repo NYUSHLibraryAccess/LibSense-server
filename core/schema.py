@@ -217,11 +217,7 @@ class PageableOrderRequest(CamelModel):
     filters: Optional[List[FieldFilter]]
     sorter: Optional[SortCol]
     fuzzy: Optional[str]
-
-    cdl_view: Optional[bool] = False
-    pending_rush_local: Optional[bool] = False
-    pending_cdl: Optional[bool] = False
-    prioritize: Optional[bool] = False
+    views: Optional[OrderViews] = OrderViews()
 
 
 class PresetRequest(CamelModel):
