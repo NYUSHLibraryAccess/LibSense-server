@@ -74,17 +74,17 @@ def db_to_preset(presets: List[model.Preset]):
     return preset_lst
 
 
-@router.get("/", response_model=List[Preset])
+@router.get("", response_model=List[Preset])
 async def get_all_presets(request: Request, db: Session = Depends(get_db)):
     return db_to_preset(crud.get_all_presets(db, request.session["username"]))
 
 
-@router.post("/", response_model=BasicResponse)
+@router.post("", response_model=BasicResponse)
 async def new_preset(request: Request, preset: PresetRequest, db: Session = Depends(get_db)):
     return crud.add_preset(db, preset_to_db(preset, request.session["username"]))
 
 
-@router.patch("/", response_model=BasicResponse)
+@router.patch("", response_model=BasicResponse)
 async def update_preset(
     request: Request, preset: UpdatePresetRequest, db: Session = Depends(get_db)
 ):
@@ -96,7 +96,7 @@ async def update_preset(
     return result
 
 
-@router.delete("/", response_model=BasicResponse)
+@router.delete("", response_model=BasicResponse)
 async def delete_preset(
     request: Request, preset_id: int = Query(None, alias="presetId"), db: Session = Depends(get_db)
 ):
