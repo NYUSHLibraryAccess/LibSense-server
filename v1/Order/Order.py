@@ -1,5 +1,6 @@
+import json
 from core.schema import *
-from fastapi import Depends, APIRouter, Query, Request, HTTPException
+from fastapi import Body, Depends, APIRouter, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
 from core.database.utils import convert_sqlalchemy_objs_to_dict
@@ -150,6 +151,16 @@ def new_cdl_order(request: Request, body: PatchOrderRequest, db: Session = Depen
 @router.delete("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
 def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     return crud.del_cdl_order(db, book_id)
+
+
+@router.post("/cdl/reset-vendor-date", tags=["CDL Orders"], response_model=BasicResponse)
+def reset_cdl_vendor_date(body: UpdateCDLVendorDateRequest):
+    with open("configs/config.json") as f:
+        config = json.loads(f.read())
+    config["cdl_config"]["vendor_start_date"] = str(body.date)
+    with open("configs/config.json", "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=4)
+    return BasicResponse(msg="Success")
 
 
 @router.post("/check")

@@ -1,3 +1,4 @@
+import json
 from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
@@ -490,28 +491,62 @@ def get_local_rush_pending(db: Session):
     return db.execute(query.replace("\n", " ")).first()
 
 
+def get_cdl_stats(db: Session, avg_only=False):
+    with open("configs/config.json") as f:
+        config = json.load(f)
+        vendor_start_date = config["cdl_config"]["vendor_start_date"]
+        if avg_only:
+            cdl = """
+                select floor(avg(datediff(arrival_date, created_date))) as avg
+                from nyc_orders join extra_info ei on nyc_orders.id = ei.id
+                where arrival_date is not null
+                and tags like '%%[CDL]%%'
+                and nyc_orders.id in (select cdl_info.book_id from cdl_info)
+                and created_date > '%s';
+            """ % vendor_start_date
+            return db.execute(cdl.replace("\n", " ")).first()["avg"]
+
+        cdl = """
+            select floor(avg(datediff(arrival_date, created_date))) as avg,
+            floor(max(datediff(arrival_date, created_date))) as max,
+            floor(min(datediff(arrival_date, created_date))) as min
+            from nyc_orders join extra_info ei on nyc_orders.id = ei.id
+            where arrival_date is not null
+            and tags like '%%[CDL]%%'
+            and nyc_orders.id in (select cdl_info.book_id from cdl_info)
+            and created_date > '%s';
+        """ % vendor_start_date
+        return db.execute(cdl.replace("\n", " ")).first()
+
+
+def get_cdl_scan_stats(db: Session):
+    with open("configs/config.json") as f:
+        config = json.load(f)
+        vendor_start_date = config["cdl_config"]["vendor_start_date"]
+        cdl_delivery = """
+            select floor(avg(datediff(pdf_delivery_date, order_request_date))) as avg,
+            floor(max(datediff(pdf_delivery_date, order_request_date))) as max,
+            floor(min(datediff(pdf_delivery_date, order_request_date))) as min
+            from cdl_info
+            where pdf_delivery_date is not null and order_request_date is not null
+            and order_request_date > '%s';
+        """ % vendor_start_date
+        return db.execute(cdl_delivery.replace("\n", "")).first()
+
+
 def get_cdl_pending(db: Session):
+    avg_days = get_cdl_stats(db, avg_only=True)
     cdl = """
         select count(book_id)
         from cdl_info inner join extra_info on cdl_info.book_id = extra_info.id
         where pdf_delivery_date is null 
-        and datediff(current_timestamp(), order_request_date) > 30
+        and datediff(current_timestamp(), order_request_date) > %d
         and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time));
-    """
+    """ % avg_days
     return db.execute(cdl.replace("\n", " ")).first()
 
 
 def get_average_days(db: Session):
-    cdl = """
-        select floor(avg(datediff(arrival_date, created_date))) as avg,
-        floor(max(datediff(arrival_date, created_date))) as max,
-        floor(min(datediff(arrival_date, created_date))) as min
-        from nyc_orders join extra_info ei on nyc_orders.id = ei.id
-        where arrival_date is not null
-        and tags like '%%[CDL]%%'
-        and nyc_orders.id in (select cdl_info.book_id from cdl_info);
-        ;
-    """
     rush_nyc = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
         floor(max(datediff(arrival_date, created_date))) as max,
@@ -533,17 +568,9 @@ def get_average_days(db: Session):
         and tags like '%%[Local]%%';
     """
 
-    cdl_delivery = """
-        select floor(avg(datediff(pdf_delivery_date, order_request_date))) as avg,
-        floor(max(datediff(pdf_delivery_date, order_request_date))) as max,
-        floor(min(datediff(pdf_delivery_date, order_request_date))) as min
-        from cdl_info
-        where pdf_delivery_date is not null and order_request_date is not null;
-    """
-
-    cdl_rs = db.execute(cdl.replace("\n", " ")).first()
+    cdl_rs = get_cdl_stats(db)
+    cdl_scan_rs = get_cdl_scan_stats(db)
     rush_nyc_rs = db.execute(rush_nyc.replace("\n", " ")).first()
     rush_local_rs = db.execute(rush_local.replace("\n", " ")).first()
-    cdl_scan_rs = db.execute(cdl_delivery.replace("\n", "")).first()
 
     return cdl_rs, rush_nyc_rs, rush_local_rs, cdl_scan_rs

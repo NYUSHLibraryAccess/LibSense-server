@@ -343,3 +343,7 @@ class SendReportRequest(CamelModel):
     username: str
     email: str
     report_type: List[ReportTypes]
+
+
+class UpdateCDLVendorDateRequest(CamelModel):
+    date: date
