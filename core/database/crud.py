@@ -432,12 +432,12 @@ def get_all_presets(db: Session, username):
 
 
 def add_preset(db: Session, preset, preset_id=None):
-    next_preset_id = preset_id or db.query(func.max(Preset.preset_id)).scalar() + 1
+    next_preset_id = preset_id or (db.query(func.max(Preset.preset_id)).scalar() or 0) + 1
     for preset_row in preset:
         db.add(Preset(**preset_row, preset_id=next_preset_id))
 
     db.commit()
-    return schema.BasicResponse(msg="Success")
+    return next_preset_id
 
 
 def update_preset(db: Session, preset, preset_id, username):
@@ -450,7 +450,9 @@ def update_preset(db: Session, preset, preset_id, username):
     target_preset.delete()
     for insert_preset in preset:
         insert_preset["creator"] = username
-    return add_preset(db, preset, preset_id)
+
+    add_preset(db, preset, preset_id)
+    return preset_id
 
 
 def delete_preset(db: Session, preset_id, username):

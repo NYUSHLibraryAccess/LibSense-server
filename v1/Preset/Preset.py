@@ -10,6 +10,7 @@ from core.schema import (
     FilterOperators,
     FieldFilter,
     OrderViews,
+    PresetResponse,
 )
 from core.utils.dependencies import get_db, validate_auth
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
@@ -49,6 +50,8 @@ def preset_to_db(preset, username=None):
 
 def db_to_preset(presets: List[model.Preset]):
     lst = []
+    if len(presets) == 0:
+        return lst
     preset_dict = {}
     for idx, row in enumerate(presets[0:]):
         if row.preset_id != preset_dict.get("preset_id", None):
@@ -79,21 +82,22 @@ async def get_all_presets(request: Request, db: Session = Depends(get_db)):
     return db_to_preset(crud.get_all_presets(db, request.session["username"]))
 
 
-@router.post("", response_model=BasicResponse)
+@router.post("", response_model=PresetResponse)
 async def new_preset(request: Request, preset: PresetRequest, db: Session = Depends(get_db)):
-    return crud.add_preset(db, preset_to_db(preset, request.session["username"]))
+    preset_id = crud.add_preset(db, preset_to_db(preset, request.session["username"]))
+    return PresetResponse(msg="Success", preset_id=preset_id)
 
 
-@router.patch("", response_model=BasicResponse)
+@router.patch("", response_model=PresetResponse)
 async def update_preset(
     request: Request, preset: UpdatePresetRequest, db: Session = Depends(get_db)
 ):
-    result = crud.update_preset(
+    preset_id = crud.update_preset(
         db, preset_to_db(preset), preset.preset_id, request.session["username"]
     )
-    if result == -1:
+    if preset_id == -1:
         raise (HTTPException(status_code=500, detail="Error when updating preset"))
-    return result
+    return PresetResponse(msg="Success", preset_id=preset_id)
 
 
 @router.delete("", response_model=BasicResponse)

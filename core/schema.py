@@ -82,6 +82,10 @@ class BasicResponse(CamelModel):
     msg: Optional[str] = "Success"
 
 
+class PresetResponse(BasicResponse):
+    preset_id: int
+
+
 class FieldFilter(CamelModel):
     op: FilterOperators
     col: str
