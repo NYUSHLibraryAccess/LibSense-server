@@ -9,7 +9,7 @@ from loguru import logger
 from core import schema
 from core.utils.dependencies import get_db, validate_auth
 
-router = APIRouter(prefix='/data', tags=["Data"], dependencies=[Depends(validate_auth)])
+router = APIRouter(prefix="/data", tags=["Data"], dependencies=[Depends(validate_auth)])
 
 
 async def valid_content_length(content_length: int = Header(..., lt=8000000)):
@@ -65,7 +65,7 @@ async def update_sensitive(
         file_size: int = Depends(valid_content_length),
 ):
     output_file = f"assets/source/{file.filename}"
-    if file.filename.split('.')[-1] not in ['csv', 'xls', 'xlsx']:
+    if file.filename.split(".")[-1] not in ["csv", "xls", "xlsx"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Please only upload file ends with .csv, .xls, or .xlsx")
 

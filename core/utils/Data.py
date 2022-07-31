@@ -85,6 +85,11 @@ def tag_finder(order_row, local_vendors):
     if "Rush" not in tags:
         tags.append("Non-Rush")
 
+    tracking_note = order_row["tracking_note"]
+    if tracking_note is not None \
+            and re.search("\\bsensitive\\b", tracking_note, re.I):
+        tags.append("Sensitive")
+
     return Tags.encode_tags(tags)
 
 
@@ -283,8 +288,10 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
 def flush_tags(db):
     logger.info("TAG FLUSH STARTED")
     conn = db.get_bind()
-    nyc_orders = pd.read_sql_query("select * from nyc_orders", con=conn)
-    result = crud.get_non_local_vendors(db)
+    nyc_orders = pd.read_sql_query("""
+    select n.*, notes.tracking_note 
+    from nyc_orders n left outer join notes on n.id = notes.book_id""", con=conn)
+    result = crud.get_local_vendors(db)
     local_vendors = [i.vendor_code for i in result]
     logger.info("DATA READY, MAIN ITERATION STARTED")
     for _, row in tqdm(nyc_orders.iterrows()):

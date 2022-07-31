@@ -393,11 +393,11 @@ def get_all_vendors(db: Session):
     return db.query(Vendor).all()
 
 
-def get_local_vendors(db: Session):
+def get_non_local_vendors(db: Session):
     return db.query(Vendor).filter(Vendor.local == 0).all()
 
 
-def get_non_local_vendors(db: Session):
+def get_local_vendors(db: Session):
     return db.query(Vendor).filter(Vendor.local == 1).all()
 
 
