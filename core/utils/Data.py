@@ -90,6 +90,9 @@ def tag_finder(order_row, local_vendors):
             and re.search("\\bsensitive\\b", tracking_note, re.I):
         tags.append("Sensitive")
 
+    if order_row["cdl_flag"] == 1 and "CDL" not in tags:
+        tags.append("CDL")
+
     return Tags.encode_tags(tags)
 
 
@@ -289,8 +292,8 @@ def flush_tags(db):
     logger.info("TAG FLUSH STARTED")
     conn = db.get_bind()
     nyc_orders = pd.read_sql_query("""
-    select n.*, notes.tracking_note 
-    from nyc_orders n left outer join notes on n.id = notes.book_id""", con=conn)
+    select n.*, notes.tracking_note, ei.cdl_flag
+    from nyc_orders n join extra_info ei left outer join notes on n.id = notes.book_id""", con=conn)
     result = crud.get_local_vendors(db)
     local_vendors = [i.vendor_code for i in result]
     logger.info("DATA READY, MAIN ITERATION STARTED")

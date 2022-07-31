@@ -143,7 +143,7 @@ def new_cdl_order(request: Request, body: PatchOrderRequest, db: Session = Depen
                 tracking_note=body.tracking_note
             )
             crud.add_tracking_note(db, note)
-        return crud.new_cdl_order(db, body.cdl)
+        return crud.new_cdl_order(db, body)
 
     raise HTTPException(status_code=400, detail="Failed to create CDL order.")
 
