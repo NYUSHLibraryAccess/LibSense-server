@@ -50,7 +50,7 @@ def preset_to_db(preset, username=None):
 def db_to_preset(presets: List[model.Preset]):
     lst = []
     preset_dict = {}
-    for idx, row in enumerate(presets[1:]):
+    for idx, row in enumerate(presets[0:]):
         if row.preset_id != preset_dict.get("preset_id", None):
             if idx != 0:
                 lst.append(preset_dict)
