@@ -1,10 +1,12 @@
 import json
-from sqlalchemy import text, func
+import pandas as pd
+from tqdm import tqdm
+from sqlalchemy import text, func, insert
 from sqlalchemy.orm import Session
 
 from core import schema
 from core.database.utils import compile_query
-from core.database.model import Order, ExtraInfo, TrackingNote, CDLOrder, User, Vendor, Preset
+from core.database.model import Order, ExtraInfo, TrackingNote, CDLOrder, User, Vendor, Preset, SensitiveBarcode
 
 
 def login(db: Session, username, password):
@@ -369,6 +371,18 @@ def get_starting_position(db: Session, barcode: int, order_number: str):
         db.query(Order).filter(Order.barcode == barcode, Order.order_number == order_number).all()
     )
     return query[0].id if len(query) == 1 else -1
+
+
+def update_sensitive(db: Session, output_file):
+    if output_file.split(".")[-1] == "csv":
+        df = pd.read_csv(output_file, dtype=str, header=None)
+    else:
+        df = pd.read_excel(output_file, dtype=str, header=None)
+    for _, row in tqdm(df.iterrows()):
+        stmt = insert(SensitiveBarcode).values(barcode=row.iloc[0]).prefix_with("IGNORE")
+        db.execute(stmt)
+    db.commit()
+    return schema.BasicResponse(msg="Success")
 
 
 def get_order_count(db: Session):

@@ -107,6 +107,11 @@ class Preset(Base):
     op = Column(String)
 
 
+class SensitiveBarcode(Base):
+    __tablename__ = "sensitive_barcode"
+    barcode = Column(String, primary_key=True, index=True, unique=True)
+
+
 MAPPING = {
     "Order": Order,
     "CDLOrder": CDLOrder,
