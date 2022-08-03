@@ -131,19 +131,8 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
 
 
 @router.post("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
-def new_cdl_order(request: Request, body: PatchOrderRequest, db: Session = Depends(get_db)):
-    if body.cdl is not None:
-        if body.tracking_note:
-            note = TrackingNote(
-                book_id=body.book_id,
-                date=datetime.now(),
-                taken_by=request.session["username"],
-                tracking_note=body.tracking_note
-            )
-            crud.add_tracking_note(db, note)
-        return crud.new_cdl_order(db, body)
-
-    raise HTTPException(status_code=400, detail="Failed to create CDL order.")
+def new_cdl_order(body: NewCDLRequest, db: Session = Depends(get_db)):
+    return crud.new_cdl_order(db, body)
 
 
 @router.delete("/cdl", tags=["CDL Orders"], response_model=BasicResponse)

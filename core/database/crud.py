@@ -291,10 +291,7 @@ def get_cdl_detail(db: Session, book_id: int):
 
 
 def new_cdl_order(db: Session, body: schema.PatchOrderRequest):
-    cdl_dict = body.cdl.__dict__
-    if "tracking_note" in cdl_dict.keys():
-        del cdl_dict["tracking_note"]
-    cdl = CDLOrder(**cdl_dict, book_id=body.book_id)
+    cdl = CDLOrder(book_id=body.book_id)
     db.add(cdl)
     db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(
         {"tags": ExtraInfo.tags + "[CDL]", "cdl_flag": 1}

@@ -275,6 +275,10 @@ class CDLRequest(CamelModel):
     pages: Optional[str]
 
 
+class NewCDLRequest(CamelModel):
+    book_id: int
+
+
 class PatchOrderRequest(CamelModel):
     book_id: int
     tracking_note: Optional[str]
