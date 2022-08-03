@@ -239,7 +239,7 @@ class Preset(UpdatePresetRequest):
 
 
 class CDLOrder(Order):
-    cdl_item_status: Optional[List[CDLStatus]]
+    cdl_item_status: Optional[CDLStatus]
     order_request_date: Optional[date]
     scanning_vendor_payment_date: Optional[date]
     pdf_delivery_date: Optional[date]

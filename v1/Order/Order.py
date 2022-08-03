@@ -34,7 +34,7 @@ def compile_result(result_set, total_records, body: PageableOrderRequest):
 def compile_cdl_result(result_set, total_records, body: PageableOrderRequest):
     result_lst = get_tags(result_set)
     for idx in range(len(result_lst)):
-        result_lst[idx]["cdl_item_status"] = [result_lst[idx]["cdl_item_status"]]
+        result_lst[idx]["cdl_item_status"] = result_lst[idx]["cdl_item_status"]
 
     pageable_set = {
         "page_index": body.page_index,
