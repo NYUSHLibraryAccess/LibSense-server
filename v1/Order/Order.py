@@ -75,11 +75,11 @@ def update_or_add_note(note, body: PatchOrderRequest, db: Session):
              response_model_exclude_unset=True)
 def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     if body.views.cdl_view:
+        if body.views.pending_cdl:
+            return get_pending_cdl_orders(body, db)
         return get_cdl_orders(body, db)
     if body.views.pending_rush_local:
         return get_pending_rush_local_orders(body, db)
-    if body.views.pending_cdl:
-        return get_pending_cdl_orders(body, db)
     return get_normal_orders(body, db)
 
 
