@@ -293,7 +293,8 @@ def flush_tags(db):
     conn = db.get_bind()
     nyc_orders = pd.read_sql_query("""
     select n.*, notes.tracking_note, ei.cdl_flag
-    from nyc_orders n join extra_info ei left outer join notes on n.id = notes.book_id""", con=conn)
+    from nyc_orders n join extra_info ei on n.id = ei.id
+    left outer join notes on n.id = notes.book_id""", con=conn)
     result = crud.get_local_vendors(db)
     local_vendors = [i.vendor_code for i in result]
     logger.info("DATA READY, MAIN ITERATION STARTED")
