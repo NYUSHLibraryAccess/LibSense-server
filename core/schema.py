@@ -294,8 +294,8 @@ class PageableCDLOrdersSet(PageableResultSet):
 
 class Vendor(CamelModel):
     vendor_code: str
-    # local: 0 - local, 1 - non-local
-    local: int
+    # local: true - local; false - non-local
+    local: bool
     notify_in: Optional[int]
 
 

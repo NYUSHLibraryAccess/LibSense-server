@@ -73,7 +73,7 @@ class Vendor(Base):
     __tablename__ = "vendors"
     vendor_code = Column(String, primary_key=True, index=True, unique=True)
     notify_in = Column(Integer)
-    local = Column(Integer)
+    local = Column(Boolean)
 
 
 class ExtraInfo(Base):

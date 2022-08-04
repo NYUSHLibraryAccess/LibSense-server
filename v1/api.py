@@ -49,19 +49,19 @@ def get_overview(db: Session = Depends(get_db)):
         local_rush_pending=local_rush_pending,
         cdl_pending=cdl_pending,
 
-        avg_cdl=cdl_rs["avg"],
+        avg_cdl=cdl_rs["avg"] or 0,
         avg_rush_nyc=rush_nyr_rs["avg"],
         avg_rush_local=rush_local_rs["avg"],
 
-        min_cdl=cdl_rs["min"],
+        min_cdl=cdl_rs["min"] or 0,
         min_rush_nyc=rush_nyr_rs["min"],
         min_rush_local=rush_local_rs["min"],
 
-        max_cdl=cdl_rs["max"],
+        max_cdl=cdl_rs["max"] or 0,
         max_rush_nyc=rush_nyr_rs["max"],
         max_rush_local=rush_local_rs["max"],
 
-        avg_cdl_scan=cdl_scan_rs["avg"],
-        max_cdl_scan=cdl_scan_rs["max"],
-        min_cdl_scan=cdl_scan_rs["min"],
+        avg_cdl_scan=cdl_scan_rs["avg"] or 0,
+        max_cdl_scan=cdl_scan_rs["max"] or 0,
+        min_cdl_scan=cdl_scan_rs["min"] or 0,
     )

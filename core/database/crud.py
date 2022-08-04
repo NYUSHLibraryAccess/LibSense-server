@@ -556,7 +556,7 @@ def get_cdl_pending(db: Session):
         where pdf_delivery_date is null 
         and datediff(current_timestamp(), order_request_date) > %d
         and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time));
-    """ % avg_days
+    """ % (avg_days or 0)
     return db.execute(cdl.replace("\n", " ")).first()
 
 
