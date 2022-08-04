@@ -551,7 +551,12 @@ def get_cdl_scan_stats(db: Session):
 def get_cdl_pending(db: Session):
     avg_days = get_cdl_stats(db, avg_only=True)
     cdl = """
-               """ % avg_days
+        select count(book_id)
+        from cdl_info inner join extra_info on cdl_info.book_id = extra_info.id
+        where pdf_delivery_date is null 
+        and datediff(current_timestamp(), order_request_date) > %d
+        and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time));
+    """ % avg_days
     return db.execute(cdl.replace("\n", " ")).first()
 
 
