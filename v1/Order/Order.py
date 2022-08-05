@@ -119,13 +119,14 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
                 detail="Incorrect CDL request body. Did you try to update a normal order?"
             )
 
-    note = TrackingNote(
-        book_id=body.book_id,
-        date=datetime.now(),
-        taken_by=request.session["username"],
-        tracking_note=body.tracking_note
-    )
-    update_or_add_note(note, body, db)
+    if body.tracking_note is not None:
+        note = TrackingNote(
+            book_id=body.book_id,
+            date=datetime.now(),
+            taken_by=request.session["username"],
+            tracking_note=body.tracking_note
+        )
+        update_or_add_note(note, body, db)
 
     return BasicResponse(msg="Success")
 
