@@ -9,24 +9,15 @@ from loguru import logger
 from core import schema
 from core.utils.dependencies import get_db, validate_auth
 
-router = APIRouter(prefix='/data', tags=["Data"], dependencies=[Depends(validate_auth)])
+router = APIRouter(prefix="/data", tags=["Data"], dependencies=[Depends(validate_auth)])
 
 
 async def valid_content_length(content_length: int = Header(..., lt=8000000)):
     return content_length
 
 
-@router.post("/upload", response_model=schema.BasicResponse)
-async def upload_file(
-        db: Session = Depends(get_db),
-        file: UploadFile = File(...),
-        file_size: int = Depends(valid_content_length)):
-    output_file = f"assets/source/{file.filename}"
-    if file.filename.split('.')[-1] not in ['csv', 'xls', 'xlsx']:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Please only upload file ends with .csv, .xls, or .xlsx")
+async def async_upload_handler(file, output_file, file_size):
     real_file_size = 0
-
     try:
         async with aiofiles.open(f"{output_file}", "wb") as out_file:
             content = await file.read(1024)
@@ -39,9 +30,7 @@ async def upload_file(
                     )
                 await out_file.write(content)  # async write chunk
                 content = await file.read(1024)
-        msg = f"Successfully updated database with {file.filename}."
-        await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
-        await run_in_threadpool(lambda: Data.flush_tags(db))
+        return True
 
     except BaseException as e:
         logger.error(e)
@@ -50,7 +39,40 @@ async def upload_file(
             detail="There was an error processing your file",
         )
 
-    return {"msg": msg}
+
+@router.post("/upload", response_model=schema.BasicResponse)
+async def upload_file(
+        db: Session = Depends(get_db),
+        file: UploadFile = File(...),
+        file_size: int = Depends(valid_content_length)):
+    output_file = f"assets/source/{file.filename}"
+    if file.filename.split(".")[-1] not in ["csv", "xls", "xlsx"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Please only upload file ends with .csv, .xls, or .xlsx")
+
+    await async_upload_handler(file, output_file, file_size)
+
+    await run_in_threadpool(lambda: Data.data_ingestion(db, output_file))
+    await run_in_threadpool(lambda: Data.flush_tags(db))
+
+    return {"msg": "Successfully uploaded file: %s" % file.filename}
+
+
+@router.post("/upload-sensitive")
+async def update_sensitive(
+        db: Session = Depends(get_db),
+        file: UploadFile = File(...),
+        file_size: int = Depends(valid_content_length),
+):
+    output_file = f"assets/source/{file.filename}"
+    if file.filename.split(".")[-1] not in ["csv", "xls", "xlsx"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Please only upload file ends with .csv, .xls, or .xlsx")
+
+    await async_upload_handler(file, output_file, file_size)
+
+    await run_in_threadpool(lambda: crud.update_sensitive(db, output_file))
+    return {"msg": "Successfully uploaded file: %s" % file.filename}
 
 
 @router.get("/metadata", response_model=schema.MetaData)

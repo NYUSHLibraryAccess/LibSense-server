@@ -1,7 +1,9 @@
-from core import schema
-from core.database.model import MAPPING
 from humps import decamelize
 from sqlalchemy import and_, or_
+
+from core import schema
+from core.database.database import Base
+from core.database.model import MAPPING
 
 
 def compile_filters(query, filters, table_mapping):
@@ -16,18 +18,21 @@ def compile_filters(query, filters, table_mapping):
             if f.col == "tags":
                 and_flags = []
                 for t in f.val:
-                    and_flags.append(target_table.tags.like('%[' + t + ']%'))
+                    and_flags.append(target_table.tags.like("%[" + t + "]%"))
                 sql_filters.append(and_(*and_flags))
             else:
                 in_filters = [getattr(target_table, decamelize(f.col)).in_(f.val)]
                 if None in f.val:
                     in_filters.append((getattr(target_table, decamelize(f.col)) == None))
-                    sql_filters.append(and_(*in_filters))
+                    sql_filters.append(or_(*in_filters))
                 else:
                     sql_filters.append(*in_filters)
-                
+
         elif f.op == schema.FilterOperators.LIKE:
-            sql_filters.append(getattr(target_table, decamelize(f.col)).like('%' + f.val + '%'))
+            if f.val is None:
+                sql_filters.append(getattr(target_table, decamelize(f.col)) == None)
+            else:
+                sql_filters.append(getattr(target_table, decamelize(f.col)).like("%" + f.val + "%"))
 
         elif f.op == schema.FilterOperators.BETWEEN:
             sql_filters.append(getattr(target_table, decamelize(f.col)).between(*f.val))
@@ -56,11 +61,23 @@ def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
 def compile_fuzzy(query, fuzzy, fuzzy_cols):
     fuzzy_filters = []
     for col in fuzzy_cols:
-        fuzzy_filters.append(col.like('%' + fuzzy + '%'))
+        fuzzy_filters.append(col.like("%" + fuzzy + "%"))
     query = query.filter(or_(*fuzzy_filters))
     return query
 
-def compile(query, filters=None, table_mapping=None, sorter=None, default_key=None, start_idx=None, limit=None, suffix=None, fuzzy=None, fuzzy_cols=None):
+
+def compile_query(
+    query,
+    filters=None,
+    table_mapping=None,
+    sorter=None,
+    default_key=None,
+    start_idx=None,
+    limit=None,
+    suffix=None,
+    fuzzy=None,
+    fuzzy_cols=None,
+):
     if filters and table_mapping:
         query = compile_filters(query, filters, table_mapping)
     if fuzzy and fuzzy_cols:
@@ -77,3 +94,9 @@ def compile(query, filters=None, table_mapping=None, sorter=None, default_key=No
     return query, total_records
 
 
+def convert_sqlalchemy_objs_to_dict(*args):
+    d = {}
+    for i in args:
+        if isinstance(i, Base):
+            d.update(i.__dict__)
+    return d

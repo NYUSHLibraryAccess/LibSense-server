@@ -11,5 +11,8 @@ def get_db():
 
 
 def validate_auth(req: Request):
-    if not req.session.get("username") or not req.session.get("role"):
+    if not req.session.get("username")\
+            or not req.session.get("role")\
+            or not req.cookies.get("_r")\
+            or req.session.get("remember") != req.cookies.get("_r"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")

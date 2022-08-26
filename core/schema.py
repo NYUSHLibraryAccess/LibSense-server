@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from enum import Enum
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Optional
 from pydantic import BaseModel, conlist
 from humps import camelize
 
@@ -19,15 +19,15 @@ class CamelModel(BaseModel):
 
 
 class Tags(str, Enum):
-    CDL = 'CDL'
-    LOCAL = 'Local'
-    RUSH = 'Rush'
-    NY = 'NY'
-    ILL = 'ILL'
-    NON_RUSH = 'Non-Rush'
-    SENSITIVE = 'Sensitive'
-    RESERVE = 'Reserve'
-    DVD = 'DVD'
+    CDL = "CDL"
+    LOCAL = "Local"
+    RUSH = "Rush"
+    NY = "NY"
+    ILL = "ILL"
+    NON_RUSH = "Non-Rush"
+    SENSITIVE = "Sensitive"
+    RESERVE = "Reserve"
+    DVD = "DVD"
 
     @staticmethod
     def split_tags(tag_str):
@@ -46,6 +46,7 @@ class CDLStatus(str, Enum):
     REQUESTED = "Requested"
     ON_LOAN = "On Loan"
 
+
 class PhysicalCopyStatus(str, Enum):
     NOT_ARRIVED = "Not Arrived"
     ON_SHELF = "On Shelf"
@@ -53,40 +54,42 @@ class PhysicalCopyStatus(str, Enum):
 
 
 class FilterOperators(str, Enum):
-    IN = 'in'
-    LIKE = 'like'
-    BETWEEN = 'between'
-    GREATER = 'greater'
-    SMALLER = 'smaller'
+    IN = "in"
+    LIKE = "like"
+    EQUAL = "eq"  # only used in preset so far.
+    BETWEEN = "between"
+    GREATER = "greater"
+    SMALLER = "smaller"
 
 
 class ReportTypes(str, Enum):
-    RUSH_LOCAL = "RushLocal",
+    RUSH_LOCAL = "RushLocal"
     CDL_ORDER = "CDLOrder"
     SHANGHAI_ORDER = "ShanghaiOrder"
 
 
 class EnumRole(str, Enum):
-    SYS_ADMIN = 'System Admin'
-    USER = 'User'
+    SYS_ADMIN = "System Admin"
+    USER = "User"
+
+
+class EnumPresetTypes(str, Enum):
+    FILTER = "filter"
+    VIEW = "view"
 
 
 class BasicResponse(CamelModel):
     msg: Optional[str] = "Success"
 
 
+class PresetResponse(BasicResponse):
+    preset_id: int
+
+
 class FieldFilter(CamelModel):
     op: FilterOperators
     col: str
-    val: Union[str, List]
-
-
-class DateRangeFilter(FieldFilter):
-    val: conlist(Union[date, None], min_items=2, max_items=2)
-
-
-class Filters(CamelModel):
-    filters: Union[DateRangeFilter, FieldFilter]
+    val: Union[str, List, None]
 
 
 class SortCol(CamelModel):
@@ -109,16 +112,11 @@ class Message(CamelModel):
     book_related: Optional[str]
 
 
-class TrackingNoteRequest(CamelModel):
-    book_id: int
-    content: str
-
-
 class TrackingNote(CamelModel):
     book_id: int
     date: datetime
     taken_by: str
-    content: str
+    tracking_note: str
 
     class Config:
         orm_mode = True
@@ -169,6 +167,7 @@ class Order(CamelModel):
     attention: Optional[bool]
     checked: Optional[bool]
     override_reminder_time: Optional[date]
+    tracking_note: Optional[str]
 
 
 class OrderDetail(Order):
@@ -192,7 +191,6 @@ class OrderDetail(Order):
     arrival_status: Optional[str]
     total_price: Optional[float]
     order_status_update_date: Optional[date]
-    tracking_note: Optional[str]
 
 
 class OrderFilter(Order):
@@ -210,16 +208,38 @@ class PageableOrdersSet(PageableResultSet):
     result: List[OrderDetail]
 
 
+class OrderViews(CamelModel):
+    cdl_view: Optional[bool] = False
+    pending_rush_local: Optional[bool] = False
+    pending_cdl: Optional[bool] = False
+    prioritize: Optional[bool] = False
+
+
 class PageableOrderRequest(CamelModel):
     page_index: Optional[int] = 0
     page_size: Optional[int] = 10
     filters: Optional[List[FieldFilter]]
     sorter: Optional[SortCol]
     fuzzy: Optional[str]
+    views: Optional[OrderViews] = OrderViews()
+
+
+class PresetRequest(CamelModel):
+    preset_name: str
+    filters: List[FieldFilter] = []
+    views: OrderViews
+
+
+class UpdatePresetRequest(PresetRequest):
+    preset_id: int
+
+
+class Preset(UpdatePresetRequest):
+    creator: str
 
 
 class CDLOrder(Order):
-    cdl_item_status: Optional[List[CDLStatus]]
+    cdl_item_status: Optional[CDLStatus]
     order_request_date: Optional[date]
     scanning_vendor_payment_date: Optional[date]
     pdf_delivery_date: Optional[date]
@@ -239,8 +259,7 @@ class CDLOrderDetail(CDLOrder, OrderDetail):
 
 
 class CDLRequest(CamelModel):
-    book_id: int
-    cdl_item_status: CDLStatus
+    cdl_item_status: Optional[CDLStatus]
     order_request_date: Optional[date]
     scanning_vendor_payment_date: Optional[date]
     pdf_delivery_date: Optional[date]
@@ -256,15 +275,27 @@ class CDLRequest(CamelModel):
     pages: Optional[str]
 
 
+class NewCDLRequest(CamelModel):
+    book_id: int
+
+
+class PatchOrderRequest(CamelModel):
+    book_id: int
+    tracking_note: Optional[str]
+    checked: Optional[bool] = "undefined"
+    attention: Optional[bool] = "undefined"
+    override_reminder_time: Optional[date] = "undefined"
+    cdl: Optional[CDLRequest] = None
+
+
 class PageableCDLOrdersSet(PageableResultSet):
     result: List[CDLOrderDetail]
 
 
 class Vendor(CamelModel):
     vendor_code: str
-    name: Optional[str]
-    # local: 0 - local, 1 - non-local
-    local: int
+    # local: true - local; false - non-local
+    local: bool
     notify_in: Optional[int]
 
 
@@ -308,6 +339,8 @@ class SystemUser(CamelModel):
 class LoginRequest(CamelModel):
     username: str
     password: str
+    remember: Optional[bool]
+    remember_test: Optional[bool]
 
 
 class NewSystemUser(SystemUser):
@@ -319,3 +352,6 @@ class SendReportRequest(CamelModel):
     email: str
     report_type: List[ReportTypes]
 
+
+class UpdateCDLVendorDateRequest(CamelModel):
+    date: date

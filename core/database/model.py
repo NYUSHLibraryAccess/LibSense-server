@@ -1,5 +1,4 @@
-from sqlalchemy import Float, DateTime, Boolean, Column, ForeignKey, Integer, String, VARCHAR
-from sqlalchemy.orm import relationship
+from sqlalchemy import Float, DateTime, Boolean, Column, ForeignKey, Integer, String
 
 from .database import Base
 
@@ -37,16 +36,12 @@ class Order(Base):
     vendor_code = Column(String, nullable=False)
     library_note = Column(String)
 
-    tracking_note = relationship("TrackingNote", back_populates="book")
-    extra_info = relationship("ExtraInfo", back_populates="book")
-
 
 class CDLOrder(Base):
     __tablename__ = "cdl_info"
-    book_id = Column(Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True)
-    # order_number = Column(String, ForeignKey("nyc_orders.order_number"))
-    # title = Column(String)
-    # barcode = Column(String)
+    book_id = Column(
+        Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True
+    )
     cdl_item_status = Column(String)
     order_request_date = Column(DateTime)
     order_purchased_date = Column(DateTime)
@@ -64,22 +59,21 @@ class CDLOrder(Base):
 
 
 class TrackingNote(Base):
+    # didn't put this column in ExtraInfo (1...1 mapping)
+    # might be expanded to multiple tracking notes in the future, so a separate table is created
     __tablename__ = "notes"
-    id = Column(Integer, primary_key=True, index=True, unique=True)
+    note_id = Column(Integer, primary_key=True, index=True, unique=True)
     book_id = Column(Integer, ForeignKey("nyc_orders.id"))
-    content = Column(String)
+    tracking_note = Column(String)
     taken_by = Column(String)
     date = Column(DateTime)
-
-    book = relationship("Order", back_populates="tracking_note")
 
 
 class Vendor(Base):
     __tablename__ = "vendors"
     vendor_code = Column(String, primary_key=True, index=True, unique=True)
-    name = Column(String)
     notify_in = Column(Integer)
-    local = Column(Integer)
+    local = Column(Boolean)
 
 
 class ExtraInfo(Base):
@@ -93,8 +87,6 @@ class ExtraInfo(Base):
     override_reminder_time = Column(DateTime)
     attention = Column(Boolean)
 
-    book = relationship("Order", back_populates="extra_info")
-
 
 class User(Base):
     __tablename__ = "user"
@@ -103,10 +95,27 @@ class User(Base):
     role = Column(String)
 
 
+class Preset(Base):
+    __tablename__ = "presets"
+    record_id = Column(Integer, primary_key=True, index=True, unique=True)
+    preset_id = Column(Integer)
+    preset_name = Column(String)
+    creator = Column(String)
+    type = Column(String)
+    col = Column(String)
+    val = Column(String)
+    op = Column(String)
+
+
+class SensitiveBarcode(Base):
+    __tablename__ = "sensitive_barcode"
+    barcode = Column(String, primary_key=True, index=True, unique=True)
+
+
 MAPPING = {
     "Order": Order,
     "CDLOrder": CDLOrder,
     "TrackingNote": TrackingNote,
     "Vendor": Vendor,
-    "ExtraInfo": ExtraInfo
+    "ExtraInfo": ExtraInfo,
 }

@@ -1,0 +1,5 @@
+[tool.black]
+profile = "black"
+include = '\.pyi?$'
+line_length = 100
+ensure_newline_before_comments = true

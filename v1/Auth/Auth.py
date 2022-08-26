@@ -1,3 +1,5 @@
+import time
+
 from fastapi import status, APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
@@ -14,18 +16,27 @@ def login(request: Request, response: Response, payload: schema.LoginRequest, db
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong username or password.")
     user_dict = {"username": user.username, "role": user.role}
+    ts = str(int(time.time()))
+    user_dict["remember"] = ts
+    if payload.remember:
+        response.set_cookie("_r", ts, max_age=86400)
+    elif payload.remember_test:
+        response.set_cookie("_r", ts, max_age=30)
+    else:
+        response.set_cookie("_r", ts, max_age=None)
     request.session.clear()
     request.session.update(user_dict)
     return schema.SystemUser(**user_dict)
 
 
 @router.post("/logout", response_model=schema.BasicResponse)
-def logout(request: Request):
+def logout(request: Request, response: Response):
     request.session.clear()
+    response.delete_cookie("_r")
     return {"msg": "Successfully logged out"}
 
 
-@router.get("/all_users", response_model=List[schema.SystemUser])
+@router.get("/all-users", dependencies=[Depends(validate_auth)], response_model=List[schema.SystemUser])
 def all_users(request: Request, db: Session = Depends(get_db)):
     if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -34,7 +45,7 @@ def all_users(request: Request, db: Session = Depends(get_db)):
         return crud.all_users(db)
 
 
-@router.post("/add_user", response_model=schema.SystemUser, dependencies=[Depends(validate_auth)])
+@router.post("/add-user", response_model=schema.SystemUser, dependencies=[Depends(validate_auth)])
 def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depends(get_db)):
     if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -43,7 +54,7 @@ def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depe
         return crud.add_user(db, payload)
 
 
-@router.delete("/delete_user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
+@router.delete("/delete-user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
 def del_user(username: str, db: Session = Depends(get_db)):
     return crud.delete_user(db, username)
 

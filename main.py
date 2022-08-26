@@ -20,7 +20,7 @@ with open("configs/config.json") as cfg:
     SESSION_SECRET = json_cfg['session_key']
     redis_cfg = json_cfg['redis_config']
 
-ENV = os.getenv("LIBSENSE_ENV", "World")
+ENV = os.getenv("LIBSENSE_ENV", "PROD")
 logger = CustomizeLogger.make_logger(ENV)
 
 
@@ -60,4 +60,5 @@ else:
 app.include_router(api.router)
 
 if __name__ == '__main__':
+    os.environ["LIBSENSE_ENV"] = "TEST"
     uvicorn.run(app="main:app", host="0.0.0.0", port=8081, reload=True)

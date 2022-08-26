@@ -42,30 +42,12 @@ def send_report(payload: SendReportRequest, db: Session = Depends(get_db)):
             df.to_csv(file_path, index=False)
             attachments[rt] = file_path
 
-    service.send_message(payload.email, payload.username, count, attachments)
-    
-    files = glob.glob("temp/*")
-    for f in files:
-        os.remove(f)
+    if os.getenv("LIBSENSE_ENV", "Prod") == "Prod":
+        service.send_message(payload.email, payload.username, count, attachments)
+
+        files = glob.glob("temp/*")
+        for f in files:
+            os.remove(f)
     
     return {"msg": "Successfully sent report."}
-
-
-@router.post("/rush-local", response_model=PageableOrdersSet)
-def get_overdue(body: PageableOrderRequest, db: Session = Depends(get_db)):
-    page_index = body.page_index
-    page_size = body.page_size
-    filters = body.filters
-    sorter = body.sorter
-
-    result_set, total_records = crud.get_overdue_rush_local(db, page_index, page_size, filters=filters, sorter=sorter)
-    result_lst = get_tags(result_set)
-
-    pageable_set = {
-        'page_index': page_index,
-        'page_limit': page_size,
-        'total_records': total_records,
-        'result': result_lst
-    }
-    return PageableOrdersSet(**pageable_set)
     
