@@ -93,7 +93,6 @@ def get_order_detail(
 ):
     if cdl_view:
         (cdl, order, extra_info, tracking_note) = crud.get_cdl_detail(db, book_id)
-        cdl.cdl_item_status = [cdl.cdl_item_status]
     else:
         (order, extra_info, tracking_note) = crud.get_order_detail(db, book_id)
 
