@@ -292,7 +292,7 @@ def flush_tags(db):
     logger.info("TAG FLUSH STARTED")
     conn = db.get_bind()
     nyc_orders = pd.read_sql_query("""
-    select n.*, notes.tracking_note, ei.cdl_flag
+    select n.*, notes.tracking_note, ei.cdl_flag, ei.tags
     from nyc_orders n join extra_info ei on n.id = ei.id
     left outer join notes on n.id = notes.book_id""", con=conn)
     result = crud.get_local_vendors(db)
@@ -301,7 +301,7 @@ def flush_tags(db):
     for _, row in tqdm(nyc_orders.iterrows()):
         tags = tag_finder(row, local_vendors)
         # insert into CDL table for new CDL entries
-        if "CDL" in tags and (row["tags"] and "CDL" not in row["tags"]):
+        if "CDL" in tags and "CDL" not in (row["tags"] or ""):
             cdl_stmt = text("INSERT INTO cdl_info (book_id, cdl_item_status) VALUES (:id, :cdl_status)"
                             "ON DUPLICATE KEY UPDATE book_id=book_id")
             conn.execute(cdl_stmt, {"id": row["id"], "cdl_status": CDLStatus.REQUESTED})
