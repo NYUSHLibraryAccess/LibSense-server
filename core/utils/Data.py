@@ -7,7 +7,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
 from core.database import crud
-from core.schema import Tags
+from core.schema import Tags, CDLStatus
 from core.database.model import Order
 from core.database.database import engine
 
@@ -300,6 +300,12 @@ def flush_tags(db):
     logger.info("DATA READY, MAIN ITERATION STARTED")
     for _, row in tqdm(nyc_orders.iterrows()):
         tags = tag_finder(row, local_vendors)
+        # insert into CDL table for new CDL entries
+        if "CDL" in tags and (row["tags"] and "CDL" not in row["tags"]):
+            cdl_stmt = text("INSERT INTO cdl_info (book_id, cdl_item_status) VALUES (:id, :cdl_status)"
+                            "ON DUPLICATE KEY UPDATE book_id=book_id")
+            conn.execute(cdl_stmt, {"id": row["id"], "cdl_status": CDLStatus.REQUESTED})
+
         stmt = text(
             "INSERT INTO extra_info (id, order_number, tags) "
             "VALUES (:id, :order_number, :tags) "

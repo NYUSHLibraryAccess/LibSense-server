@@ -1,6 +1,6 @@
 import json
 from core.schema import *
-from fastapi import Body, Depends, APIRouter, Query, Request, HTTPException
+from fastapi import Depends, APIRouter, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
 from core.database.utils import convert_sqlalchemy_objs_to_dict
