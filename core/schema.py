@@ -158,6 +158,7 @@ class Order(CamelModel):
     order_number: str
     created_date: Optional[date]
     arrival_date: Optional[date]
+    est_arrival: Optional[date]
     ips_code: Optional[str]
     ips: Optional[str]
     ips_date: Optional[date]
