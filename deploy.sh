@@ -24,11 +24,16 @@ then
     mkdir assets/source
     mkdir logs
     mkdir configs
+
+    pip3 install -r requirements.txt
 else
     echo "Pulling latest changes from repository..."
+    cd "$ROOT_DIR/LibSense-server"
     git reset --hard HEAD
     git checkout main
     git pull
+
+    pip3 install -r requirements.txt
 fi
 
 echo "Done!"
