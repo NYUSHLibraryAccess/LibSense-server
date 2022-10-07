@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 from tqdm import tqdm
-from sqlalchemy import text, func, insert
+from sqlalchemy import text, func, insert, and_, delete
 from sqlalchemy.orm import Session
 
 from core import schema
@@ -322,9 +322,47 @@ def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
 def update_normal_order(db: Session, body: schema.PatchOrderRequest):
     cols = ["checked", "attention", "override_reminder_time"]
     info_dict = {k: v for k, v in body.__dict__.items() if k in cols and v != "undefined"}
-    db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(info_dict)
+    if len(info_dict.keys()) > 0:
+        db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(info_dict)
+        db.commit()
+
+
+def mark_sensitive(db: Session, book_id: int):
+    order = db.query(Order).filter(Order.id == book_id).first()
+    if "-" in order.barcode:
+        raise schema.LibSenseException("Barcode has not finalized yet.")
+
+    existence = db.query(SensitiveBarcode).filter(SensitiveBarcode.barcode == order.barcode).count()
+    if existence == 0:
+        stmt = insert(SensitiveBarcode).values(barcode=order.barcode).prefix_with("IGNORE")
+        db.execute(stmt)
+        db.query(ExtraInfo) \
+            .filter(and_(
+            Order.id == ExtraInfo.id,
+            Order.barcode == order.barcode,
+            ExtraInfo.tags.notlike("Sensitive"))) \
+            .update({"tags": ExtraInfo.tags + "[Sensitive]"}, synchronize_session='fetch')
     db.commit()
-    return schema.BasicResponse(msg="Success")
+
+
+def cancel_sensitive(db: Session, book_id):
+    order = db.query(Order).filter(Order.id == book_id).first()
+    if "-" in order.barcode:
+        raise schema.LibSenseException("Barcode has not finalized yet.")
+
+    existence = db.query(SensitiveBarcode).filter(SensitiveBarcode.barcode == order.barcode).count()
+    if existence == 0:
+        raise schema.LibSenseException("Barcode not in sensitive database. Please check library note.")
+
+    stmt = delete(SensitiveBarcode).where(SensitiveBarcode.barcode == order.barcode)
+    db.execute(stmt)
+    db.query(ExtraInfo) \
+        .filter(and_(
+        Order.id == ExtraInfo.id,
+        Order.barcode == order.barcode,
+        ExtraInfo.tags.notlike("Sensitive"))) \
+        .update({"tags": ExtraInfo.tags.regexp_replace("\[Sensitive\]", "")}, synchronize_session='fetch')
+    db.commit()
 
 
 def mark_order_attention(db: Session, book_ids, direction):
@@ -379,6 +417,14 @@ def update_sensitive(db: Session, output_file):
     for _, row in tqdm(df.iterrows()):
         stmt = insert(SensitiveBarcode).values(barcode=row.iloc[0]).prefix_with("IGNORE")
         db.execute(stmt)
+
+        db.query(ExtraInfo)\
+            .filter(and_(
+            Order.id == ExtraInfo.id,
+            Order.barcode == row.iloc[0],
+            ExtraInfo.tags.notlike("Sensitive")))\
+            .update({"tags": ExtraInfo.tags + "[Sensitive]"}, synchronize_session='fetch')
+
     db.commit()
     return schema.BasicResponse(msg="Success")
 

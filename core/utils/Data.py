@@ -55,7 +55,7 @@ date_rows = [
 ]
 
 
-def tag_finder(order_row, local_vendors):
+def tag_finder(order_row, local_vendors, sensitive_barcodes):
     tags = []
     keywords = {
         "Rush": ['Request', 'Need', 'Hold', 'Notify', 'CDL', 'ILL', 'Course', 'Reserve', 'Ares', 'Semester', 'Term',
@@ -86,8 +86,8 @@ def tag_finder(order_row, local_vendors):
         tags.append("Non-Rush")
 
     tracking_note = order_row["tracking_note"]
-    if tracking_note is not None \
-            and re.search("\\bsensitive\\b", tracking_note, re.I):
+    if (tracking_note is not None and re.search("\\bsensitive\\b", tracking_note, re.I)) \
+        or (sensitive_barcodes.iloc[sensitive_barcodes["barcode"] == order_row["barcode"]]):
         tags.append("Sensitive")
 
     if order_row["cdl_flag"] == 1 and "CDL" not in tags:
@@ -201,7 +201,7 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
     curr_end = sorted_curr[sorted_curr["Z68_ORDER_NUMBER"] == sorted_prev.iloc[-1]["order_number"]]
     end_idx = curr_end.iloc[-1].name
 
-    check_prev = sorted_prev.iloc[int(start_idx) :]
+    check_prev = sorted_prev.iloc[int(start_idx):]
     check_curr = sorted_curr.iloc[: int(end_idx) + 1]
 
     check_prev.reset_index(inplace=True, drop=True)
@@ -216,8 +216,8 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
     deleted_rows = 0
     for idx, row in check_prev.iterrows():
         if (
-            check_curr.iloc[idx - deleted_rows]["BSN"] == row["bsn"]
-            and check_curr.iloc[idx - deleted_rows]["Z68_ORDER_NUMBER"] == row["order_number"]
+                check_curr.iloc[idx - deleted_rows]["BSN"] == row["bsn"]
+                and check_curr.iloc[idx - deleted_rows]["Z68_ORDER_NUMBER"] == row["order_number"]
         ):
             check_curr.at[idx - deleted_rows, "id"] = row["id"]
             check_curr.at[idx - deleted_rows, "checked"] = True
@@ -226,7 +226,7 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
                 (check_curr["BSN"] == row["bsn"])
                 & (check_curr["Z68_ORDER_NUMBER"] == row["order_number"])
                 & (check_curr["checked"] == False)
-            ]
+                ]
             if filtered_curr.shape[0] == 0:
                 to_del = to_del.append(row)
                 deleted_rows += 1
@@ -295,11 +295,11 @@ def flush_tags(db):
     select n.*, notes.tracking_note, ei.cdl_flag, ei.tags
     from nyc_orders n left outer join extra_info ei on n.id = ei.id
     left outer join notes on n.id = notes.book_id""", con=conn)
-    result = crud.get_local_vendors(db)
-    local_vendors = [i.vendor_code for i in result]
+    sensitive_barcodes = pd.read_sql_query("select barcode from sensitive_barcode", con=conn)
+    local_vendors = [i.vendor_code for i in crud.get_local_vendors(db)]
     logger.info("DATA READY, MAIN ITERATION STARTED")
     for _, row in tqdm(nyc_orders.iterrows()):
-        tags = tag_finder(row, local_vendors)
+        tags = tag_finder(row, local_vendors, sensitive_barcodes)
         # insert into CDL table for new CDL entries
         if "CDL" in tags and "CDL" not in (row["tags"] or ""):
             cdl_stmt = text("INSERT INTO cdl_info (book_id, cdl_item_status) VALUES (:id, :cdl_status)"

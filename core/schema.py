@@ -286,6 +286,7 @@ class PatchOrderRequest(CamelModel):
     checked: Optional[bool] = "undefined"
     attention: Optional[bool] = "undefined"
     override_reminder_time: Optional[date] = "undefined"
+    sensitive: Optional[bool] = "undefined"
     cdl: Optional[CDLRequest] = None
 
 
@@ -356,3 +357,9 @@ class SendReportRequest(CamelModel):
 
 class UpdateCDLVendorDateRequest(CamelModel):
     date: date
+
+
+class LibSenseException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)

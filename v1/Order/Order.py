@@ -108,7 +108,16 @@ def get_order_detail(
 
 @router.patch("/all-orders/detail", response_model=BasicResponse)
 def update_order(request: Request, body: PatchOrderRequest, db: Session = Depends(get_db)):
+    # incremental update. if a field is null in requestBody, means leave it untouched, instead of deleting.
     crud.update_normal_order(db, body)
+    try:
+        if body.sensitive is True:
+            crud.mark_sensitive(db, body.book_id)
+        elif body.sensitive is False:
+            crud.cancel_sensitive(db, body.book_id)
+    except LibSenseException as e:
+        raise HTTPException(status_code=500, detail=e.message)
+
     if body.cdl:
         if crud.get_cdl_detail(db, body.book_id):
             crud.update_cdl_order(db, body)
