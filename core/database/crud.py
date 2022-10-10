@@ -35,13 +35,13 @@ def delete_user(db: Session, username):
 
 
 def get_overdue_rush_local(
-    db: Session,
-    page_index: int = 0,
-    page_size: int = 10,
-    filters=None,
-    sorter=None,
-    for_pandas=False,
-    **kwargs,
+        db: Session,
+        page_index: int = 0,
+        page_size: int = 10,
+        filters=None,
+        sorter=None,
+        for_pandas=False,
+        **kwargs,
 ):
     if filters is None:
         filters = []
@@ -55,8 +55,10 @@ def get_overdue_rush_local(
         .join(ExtraInfo, Order.id == ExtraInfo.id)
         .join(Vendor, Order.vendor_code == Vendor.vendor_code)
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
-        .filter(Order.arrival_date == None)
-        .filter(Order.order_status != "VC")
+        .filter(ExtraInfo.tags.like("%%[Rush]%%"))
+        .filter(ExtraInfo.tags.like("%%[Local]%%"))
+        # .filter(Order.arrival_date == None)
+        # .filter(Order.order_status != "VC")
     )
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
@@ -64,16 +66,21 @@ def get_overdue_rush_local(
         "default": "Order",
     }
 
-    suffix = text(
-        """(extra_info.override_reminder_time is null
-    and DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in)
-    and (extra_info.checked = 0 
-    or (extra_info.override_reminder_time is not null and current_timestamp() > extra_info.override_reminder_time))
-    """.replace("\n", " ")
-    )
+    # when should a local-rush order be checked?
+    # when user marked order as check_anyway, or the order takes longer to arrive
+    # and the order hasn't been checked yet,or the override time also has been exceeded
 
-    fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
-    filters.extend(fixed_filters)
+    suffix = text(
+        """(extra_info.check_anyway = 1 or (
+          nyc_orders.arrival_date is null
+          and nyc_orders.order_status != 'VC' 
+          and DATEDIFF(current_timestamp(), nyc_orders.created_date) > vendors.notify_in
+          and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null
+            and current_timestamp() > extra_info.override_reminder_time))))
+        """.replace("\n", " "))
+
+    # fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
+    # filters.extend(fixed_filters)
 
     query, total_records = compile_query(
         query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
@@ -86,13 +93,13 @@ def get_overdue_rush_local(
 
 
 def get_overdue_cdl(
-    db: Session,
-    page_index: int = 0,
-    page_size: int = 10,
-    filters=None,
-    sorter=None,
-    for_pandas=False,
-    **kwargs,
+        db: Session,
+        page_index: int = 0,
+        page_size: int = 10,
+        filters=None,
+        sorter=None,
+        for_pandas=False,
+        **kwargs,
 ):
     args = [
         *CDLOrder.__table__.c,
@@ -112,17 +119,23 @@ def get_overdue_cdl(
         "TrackingNote": ["tracking_note"],
         "default": "Order",
     }
+
+    avg_days = get_cdl_scan_stats(db)["avg"]
+
     query = (
         db.query(*args)
         .join(Order, CDLOrder.book_id == Order.id)
         .join(ExtraInfo, CDLOrder.book_id == ExtraInfo.id)
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
-        .filter(CDLOrder.pdf_delivery_date == None)
     )
+
+    # override_reminder_time != 0 implicitly indicated checked = 1
     suffix = text(
-        """datediff(current_timestamp(), cdl_info.order_request_date) > 30
+        """(extra_info.check_anyway = 1 or 
+        (cdl_info.pdf_delivery_date is null 
+        and datediff(current_timestamp(), cdl_info.order_request_date) > %d
         and (extra_info.checked = 0 or (extra_info.override_reminder_time is not null
-        and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))"""
+        and CURRENT_TIMESTAMP() > extra_info.override_reminder_time))))""" % (avg_days or 0)
     )
 
     query, total_records = compile_query(
@@ -136,13 +149,13 @@ def get_overdue_cdl(
 
 
 def get_sh_order_report(
-    db: Session,
-    page_index: int = 0,
-    page_size: int = 10,
-    filters=None,
-    sorter=None,
-    for_pandas=False,
-    **kwargs,
+        db: Session,
+        page_index: int = 0,
+        page_size: int = 10,
+        filters=None,
+        sorter=None,
+        for_pandas=False,
+        **kwargs,
 ):
     if filters is None:
         filters = []
@@ -180,13 +193,13 @@ def get_sh_order_report(
 
 
 def get_all_orders(
-    db: Session,
-    page_index: int = 0,
-    page_size: int = 10,
-    filters=None,
-    sorter=None,
-    fuzzy=None,
-    **kwargs,
+        db: Session,
+        page_index: int = 0,
+        page_size: int = 10,
+        filters=None,
+        sorter=None,
+        fuzzy=None,
+        **kwargs,
 ):
     args = [
         *Order.__table__.c,
@@ -230,13 +243,13 @@ def get_order_detail(db: Session, book_id: int):
 
 
 def get_all_cdl(
-    db: Session,
-    page_index: int = 0,
-    page_size: int = 10,
-    filters=None,
-    sorter=None,
-    fuzzy=None,
-    **kwargs,
+        db: Session,
+        page_index: int = 0,
+        page_size: int = 10,
+        filters=None,
+        sorter=None,
+        fuzzy=None,
+        **kwargs,
 ):
     args = [
         *CDLOrder.__table__.c,
@@ -320,7 +333,7 @@ def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
 
 
 def update_normal_order(db: Session, body: schema.PatchOrderRequest):
-    cols = ["checked", "attention", "override_reminder_time"]
+    cols = ["checked", "attention", "override_reminder_time", "check_ahead"]
     info_dict = {k: v for k, v in body.__dict__.items() if k in cols and v != "undefined"}
     if len(info_dict.keys()) > 0:
         db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(info_dict)
@@ -418,11 +431,11 @@ def update_sensitive(db: Session, output_file):
         stmt = insert(SensitiveBarcode).values(barcode=row.iloc[0]).prefix_with("IGNORE")
         db.execute(stmt)
 
-        db.query(ExtraInfo)\
+        db.query(ExtraInfo) \
             .filter(and_(
             Order.id == ExtraInfo.id,
             Order.barcode == row.iloc[0],
-            ExtraInfo.tags.notlike("Sensitive")))\
+            ExtraInfo.tags.notlike("Sensitive"))) \
             .update({"tags": ExtraInfo.tags + "[Sensitive]"}, synchronize_session='fetch')
 
     db.commit()
@@ -534,19 +547,23 @@ def get_material_type_meta(db: Session):
 
 
 def get_local_rush_pending(db: Session):
+    # when should a local-rush order be checked?
+    # when user marked order as check_anyway, or the order takes longer to arrive
+    # and the order hasn't been checked yet,or the override time also has been exceeded
+
     query = """
         select count(o.id)
         from nyc_orders as o join extra_info as e join vendors as v
         on e.id = o.id and o.vendor_code = v.vendor_code
-        where (arrival_date is null)
-          and o.order_status != 'VC'
-          and e.checked = 0 
-          and e.tags like '%%[Rush]%%'
+        where e.tags like '%%[Rush]%%'
           and e.tags like '%%[Local]%%'
-          and (((override_reminder_time is null) 
-                    and (DATEDIFF(current_timestamp(), created_date) > notify_in))
-                or ((override_reminder_time is not null) 
-                    and (DATEDIFF(current_timestamp(), created_date) > override_reminder_time)));
+          and (e.check_anyway = 1 or (
+          arrival_date is null
+          and o.order_status != 'VC' 
+          and ((DATEDIFF(current_timestamp(), created_date) > notify_in) 
+            and (e.checked = 0 or (override_reminder_time is not null
+                    and current_timestamp() > override_reminder_time)))
+          ))
     """
     return db.execute(query.replace("\n", " ")).first()
 
@@ -595,13 +612,14 @@ def get_cdl_scan_stats(db: Session):
 
 
 def get_cdl_pending(db: Session):
-    avg_days = get_cdl_stats(db, avg_only=True)
+    avg_days = get_cdl_scan_stats(db)["avg"]
     cdl = """
         select count(book_id)
         from cdl_info inner join extra_info on cdl_info.book_id = extra_info.id
-        where pdf_delivery_date is null 
+        where (extra_info.check_anyway = 1 or (pdf_delivery_date is null 
         and datediff(current_timestamp(), order_request_date) > %d
-        and (extra_info.checked = 0 or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time));
+        and (extra_info.checked = 0 
+            or (override_reminder_time is not null and CURRENT_TIMESTAMP() > override_reminder_time))));
     """ % (avg_days or 0)
     return db.execute(cdl.replace("\n", " ")).first()
 
