@@ -249,7 +249,6 @@ class CDLOrder(Order):
 
 
 class CDLOrderDetail(CDLOrder, OrderDetail):
-    order_purchased_date: Optional[date]
     due_date: Optional[date]
     physical_copy_status: Optional[Union[PhysicalCopyStatus, None]]
     vendor_file_url: Optional[str]
@@ -266,7 +265,6 @@ class CDLRequest(CamelModel):
     pdf_delivery_date: Optional[date]
     back_to_karms_date: Optional[Union[date, str]]
     circ_pdf_url: Optional[str]
-    order_purchased_date: Optional[date]
     due_date: Optional[date]
     physical_copy_status: Optional[str]
     vendor_file_url: Optional[str]

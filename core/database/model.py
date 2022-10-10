@@ -44,7 +44,6 @@ class CDLOrder(Base):
     )
     cdl_item_status = Column(String, default="Requested")
     order_request_date = Column(DateTime)
-    order_purchased_date = Column(DateTime)
     due_date = Column(DateTime)
     physical_copy_status = Column(String, default="Not Arrived")
     scanning_vendor_payment_date = Column(DateTime)
