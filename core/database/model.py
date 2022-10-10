@@ -42,11 +42,11 @@ class CDLOrder(Base):
     book_id = Column(
         Integer, ForeignKey("nyc_orders.id"), primary_key=True, unique=True, index=True
     )
-    cdl_item_status = Column(String)
+    cdl_item_status = Column(String, default="Requested")
     order_request_date = Column(DateTime)
     order_purchased_date = Column(DateTime)
     due_date = Column(DateTime)
-    physical_copy_status = Column(String)
+    physical_copy_status = Column(String, default="Not Arrived")
     scanning_vendor_payment_date = Column(DateTime)
     pdf_delivery_date = Column(DateTime)
     back_to_karms_date = Column(String)
