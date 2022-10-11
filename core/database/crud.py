@@ -334,7 +334,7 @@ def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
 
 
 def update_normal_order(db: Session, body: schema.PatchOrderRequest):
-    cols = ["checked", "attention", "override_reminder_time", "check_ahead"]
+    cols = ["checked", "attention", "override_reminder_time", "check_anyway"]
     info_dict = {k: v for k, v in body.__dict__.items() if k in cols and v != "undefined"}
     if len(info_dict.keys()) > 0:
         db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(info_dict)
@@ -396,6 +396,15 @@ def mark_order_checked(db: Session, book_ids, direction, date):
         )
     db.commit()
     return schema.BasicResponse(msg="Success")
+
+
+def check_anyway(db: Session, book_id: int, direction: bool):
+    if direction:
+        tags = db.query(ExtraInfo.tags).filter(ExtraInfo.id == book_id).first()[0]
+        if not (("[Rush]" in tags and "[Local]" in tags) or ("[CDL]" in tags)):
+            raise schema.LibSenseException(message="Check feature only supports Rush-Local and CDL orders")
+    else:
+        db.query(ExtraInfo).filter(ExtraInfo.id == book_id).update({"check_anyway": direction})
 
 
 def get_tracking_note(db: Session, book_id: int):

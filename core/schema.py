@@ -167,6 +167,7 @@ class Order(CamelModel):
     tags: List[str]
     attention: Optional[bool]
     checked: Optional[bool]
+    check_anyway: Optional[bool]
     override_reminder_time: Optional[date]
     tracking_note: Optional[str]
 
@@ -282,7 +283,7 @@ class PatchOrderRequest(CamelModel):
     book_id: int
     tracking_note: Optional[str]
     checked: Optional[bool] = "undefined"
-    check_ahead: Optional[bool] = "undefined"
+    check_anyway: Optional[bool] = "undefined"
     attention: Optional[bool] = "undefined"
     override_reminder_time: Optional[date] = "undefined"
     sensitive: Optional[bool] = "undefined"

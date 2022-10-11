@@ -115,8 +115,12 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
             crud.mark_sensitive(db, body.book_id)
         elif body.sensitive is False:
             crud.cancel_sensitive(db, body.book_id)
-    except LibSenseException as e:
-        raise HTTPException(status_code=500, detail=e.message)
+
+        if body.check_anyway != "undefined":
+            crud.check_anyway(db, body.book_id, body.check_anyway)
+
+    except LibSenseException as err:
+        raise HTTPException(status_code=500, detail=err.message)
 
     if body.cdl:
         if crud.get_cdl_detail(db, body.book_id):

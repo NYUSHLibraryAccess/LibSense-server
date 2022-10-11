@@ -300,10 +300,11 @@ def flush_tags(db):
     logger.info("DATA READY, MAIN ITERATION STARTED")
     for _, row in tqdm(nyc_orders.iterrows()):
         tags = tag_finder(row, local_vendors, sensitive_barcodes)
-        # insert into CDL table for new CDL entries
-        if "CDL" in tags and "CDL" not in (row["tags"] or ""):
-            cdl_stmt = text("INSERT INTO cdl_info (book_id, cdl_item_status) VALUES (:id, :cdl_status)"
-                            "ON DUPLICATE KEY UPDATE book_id=book_id")
+        # insert into CDL table ONLY FOR NEW CDL entries (row["tags"] does not include CDL yet)
+        if "CDL" in tags:
+            cdl_stmt = text("INSERT IGNORE INTO cdl_info "
+                            "(book_id, created_date, cdl_item_status, physical_copy_status) "
+                            "VALUES (:id, :created_date, :cdl_status, :physical_status)")
             conn.execute(cdl_stmt, {"id": row["id"],
                                     "created_date": row["created_date"],
                                     "cdl_status": CDLStatus.REQUESTED,

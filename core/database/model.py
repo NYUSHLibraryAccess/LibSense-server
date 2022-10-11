@@ -83,6 +83,7 @@ class ExtraInfo(Base):
     reminder_receiver = Column(String)
     cdl_flag = Column(Boolean)
     checked = Column(Boolean)
+    check_anyway = Column(Boolean)
     override_reminder_time = Column(DateTime)
     attention = Column(Boolean)
 
