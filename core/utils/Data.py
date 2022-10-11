@@ -303,7 +303,7 @@ def flush_tags(db):
         # insert into CDL table ONLY FOR NEW CDL entries (row["tags"] does not include CDL yet)
         if "CDL" in tags:
             cdl_stmt = text("INSERT IGNORE INTO cdl_info "
-                            "(book_id, created_date, cdl_item_status, physical_copy_status) "
+                            "(book_id, order_request_date, cdl_item_status, physical_copy_status) "
                             "VALUES (:id, :created_date, :cdl_status, :physical_status)")
             conn.execute(cdl_stmt, {"id": row["id"],
                                     "created_date": row["created_date"],
