@@ -87,7 +87,7 @@ def tag_finder(order_row, local_vendors, sensitive_barcodes):
 
     tracking_note = order_row["tracking_note"]
     if (tracking_note is not None and re.search("\\bsensitive\\b", tracking_note, re.I)) \
-        or (sensitive_barcodes.iloc[sensitive_barcodes["barcode"] == order_row["barcode"]]):
+        or (sensitive_barcodes[sensitive_barcodes["barcode"] == order_row["barcode"]]):
         tags.append("Sensitive")
 
     if order_row["cdl_flag"] == 1 and "CDL" not in tags:
