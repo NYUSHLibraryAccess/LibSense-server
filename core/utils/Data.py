@@ -302,9 +302,10 @@ def flush_tags(db):
         tags = tag_finder(row, local_vendors, sensitive_barcodes)
         # insert into CDL table ONLY FOR NEW CDL entries (row["tags"] does not include CDL yet)
         if "CDL" in tags:
-            cdl_stmt = text("INSERT IGNORE INTO cdl_info "
+            cdl_stmt = text("INSERT INTO cdl_info "
                             "(book_id, order_request_date, cdl_item_status, physical_copy_status) "
-                            "VALUES (:id, :created_date, :cdl_status, :physical_status)")
+                            "VALUES (:id, :created_date, :cdl_status, :physical_status)"
+                            "ON DUPLICATE KEY UPDATE book_id=book_id")
             conn.execute(cdl_stmt, {"id": row["id"],
                                     "created_date": row["created_date"],
                                     "cdl_status": CDLStatus.REQUESTED,
