@@ -90,7 +90,7 @@ def tag_finder(order_row, local_vendors, sensitive_barcodes):
         or (sensitive_barcodes[sensitive_barcodes["barcode"] == order_row["barcode"]].shape[0] == 1):
         tags.append("Sensitive")
 
-    if order_row["cdl_flag"] == 1 or ("CDL" not in tags and order_row["cdl_tag"] != -1):
+    if order_row["cdl_flag"] == 1 or ("CDL" not in tags and order_row["cdl_flag"] != -1):
         tags.append("CDL")
 
     return Tags.encode_tags(tags)
