@@ -63,16 +63,7 @@ def get_pending_rush_local_orders(body: PageableOrderRequest, db: Session):
     return compile_result(result_set, total_records, body)
 
 
-def update_or_add_note(note, body: PatchOrderRequest, db: Session):
-    if crud.get_tracking_note(db, body.book_id):
-        return crud.update_tracking_note(db, note)
-
-    return crud.add_tracking_note(db, note)
-
-
-@router.post("/all-orders",
-             response_model=Union[PageableCDLOrdersSet, PageableOrdersSet],
-             response_model_exclude_unset=True)
+@router.post("/all-orders", response_model=Union[PageableCDLOrdersSet, PageableOrdersSet])
 def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     if body.views.cdl_view:
         if body.views.pending_cdl:
@@ -83,9 +74,7 @@ def get_all_order(body: PageableOrderRequest, db: Session = Depends(get_db)):
     return get_normal_orders(body, db)
 
 
-@router.get("/all-orders/detail",
-            response_model=Union[CDLOrderDetail, OrderDetail],
-            response_model_exclude_unset=True)
+@router.get("/all-orders/detail", response_model=Union[CDLOrderDetail, OrderDetail])
 def get_order_detail(
         book_id: int = Query(None, alias="bookId"),
         cdl_view: bool = Query(False, alias="cdlView"),
@@ -108,15 +97,21 @@ def get_order_detail(
 
 @router.patch("/all-orders/detail", response_model=BasicResponse)
 def update_order(request: Request, body: PatchOrderRequest, db: Session = Depends(get_db)):
-    # incremental update. if a field is null in requestBody, means leave it untouched, instead of deleting.
+    # Full upload. Null is treated as set NULL.
+    if body.cdl:
+        (cdl, order, extra_info, tracking_note) = crud.get_cdl_detail(db, body.book_id)
+    else:
+        (order, extra_info, tracking_note) = crud.get_order_detail(db, body.book_id)
+
     crud.update_normal_order(db, body)
     try:
-        if body.sensitive is True:
-            crud.mark_sensitive(db, body.book_id)
-        elif body.sensitive is False:
-            crud.cancel_sensitive(db, body.book_id)
+        if body.sensitive != ("Sensitive" in extra_info.tags):
+            if body.sensitive is True:
+                crud.mark_sensitive(db, body.book_id)
+            elif body.sensitive is False:
+                crud.cancel_sensitive(db, body.book_id)
 
-        if body.check_anyway != "undefined":
+        if body.check_anyway != extra_info.check_anyway:
             crud.check_anyway(db, body.book_id, body.check_anyway)
 
     except LibSenseException as err:
@@ -130,15 +125,27 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
                 status_code=500,
                 detail="Incorrect CDL request body. Did you try to update a normal order?"
             )
-
-    if body.tracking_note is not None:
-        note = TrackingNote(
-            book_id=body.book_id,
-            date=datetime.now(),
-            taken_by=request.session["username"],
-            tracking_note=body.tracking_note
-        )
-        update_or_add_note(note, body, db)
+    if tracking_note is not None:
+        if tracking_note.tracking_note != body.tracking_note:
+            if body.tracking_note is None:
+                crud.delete_tracking_note(db, body.book_id)
+            else:
+                note = TrackingNote(
+                    book_id=body.book_id,
+                    date=datetime.now(),
+                    taken_by=request.session["username"],
+                    tracking_note=body.tracking_note
+                )
+                crud.update_tracking_note(db, note)
+    else:
+        if body.tracking_note is not None:
+            note = TrackingNote(
+                book_id=body.book_id,
+                date=datetime.now(),
+                taken_by=request.session["username"],
+                tracking_note=body.tracking_note
+            )
+            crud.add_tracking_note(db, note)
 
     return BasicResponse(msg="Success")
 
