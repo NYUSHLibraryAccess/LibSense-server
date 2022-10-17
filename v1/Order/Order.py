@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from core.schema import *
 from fastapi import Depends, APIRouter, Query, Request, HTTPException
 from sqlalchemy.orm import Session
@@ -9,19 +10,27 @@ from core.utils.dependencies import get_db, validate_auth, validate_privilege
 router = APIRouter(prefix="/orders", tags=["Order"], dependencies=[Depends(validate_auth)])
 
 
-def get_tags(result_set):
+def parse_result(result_set):
     result_lst = []
     for row in result_set:
         row_dict = dict(row._mapping)
+        # parse tags
         row_dict["tags"] = Tags.split_tags(row_dict["tags"])
         if row_dict.get("cdl_flag") == 1 and "CDL" not in row_dict["tags"]:
             row_dict["tags"].append("CDL")
+        # parse est arrival
+        if row_dict.get("notify_in", None) is not None:
+            row_dict["est_arrival"] = (
+                    row["created_date"]
+                    + timedelta(days=row_dict["notify_in"])
+            ).strftime("%Y-%m-%d")
+
         result_lst.append(row_dict)
     return result_lst
 
 
 def compile_result(result_set, total_records, body: PageableOrderRequest):
-    result_lst = get_tags(result_set)
+    result_lst = parse_result(result_set)
     pageable_set = {
         "page_index": body.page_index,
         "page_limit": body.page_size,
@@ -32,7 +41,7 @@ def compile_result(result_set, total_records, body: PageableOrderRequest):
 
 
 def compile_cdl_result(result_set, total_records, body: PageableOrderRequest):
-    result_lst = get_tags(result_set)
+    result_lst = parse_result(result_set)
 
     pageable_set = {
         "page_index": body.page_index,
@@ -83,7 +92,9 @@ def get_order_detail(
     if cdl_view:
         (cdl, order, extra_info, tracking_note) = crud.get_cdl_detail(db, book_id)
     else:
-        (order, extra_info, tracking_note) = crud.get_order_detail(db, book_id)
+        (order, extra_info, tracking_note, vendor) = crud.get_order_detail(db, book_id)
+        if vendor.notify_in is not None:
+            order.est_arrival = order.created_date + timedelta(days=vendor.notify_in)
 
     extra_info.tags = Tags.split_tags(extra_info.tags)
     if extra_info.cdl_flag == 1 and "CDL" not in extra_info.tags:
@@ -101,7 +112,7 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
     if body.cdl:
         (cdl, order, extra_info, tracking_note) = crud.get_cdl_detail(db, body.book_id)
     else:
-        (order, extra_info, tracking_note) = crud.get_order_detail(db, body.book_id)
+        (order, extra_info, tracking_note, vendor) = crud.get_order_detail(db, body.book_id)
 
     crud.update_normal_order(db, body)
     try:

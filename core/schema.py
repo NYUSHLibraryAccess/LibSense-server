@@ -156,6 +156,7 @@ class Order(CamelModel):
     barcode: Optional[str]
     title: Optional[str]
     order_number: str
+    est_arrival: Optional[str]
     created_date: Optional[date]
     arrival_date: Optional[date]
     est_arrival: Optional[date]

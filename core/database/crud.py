@@ -49,11 +49,12 @@ def get_overdue_rush_local(
         *Order.__table__.c,
         *ExtraInfo.__table__.c,
         TrackingNote.tracking_note,
+        Vendor.notify_in,
     ]
     query = (
         db.query(*args)
         .join(ExtraInfo, Order.id == ExtraInfo.id)
-        .join(Vendor, Order.vendor_code == Vendor.vendor_code)
+        .join(Vendor, Order.vendor_code == Vendor.vendor_code, isouter=True)
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
         .filter(ExtraInfo.tags.like("%%[Rush]%%"))
         .filter(ExtraInfo.tags.like("%%[Local]%%"))
@@ -205,11 +206,13 @@ def get_all_orders(
         *Order.__table__.c,
         *ExtraInfo.__table__.c,
         TrackingNote.tracking_note,
+        Vendor.notify_in,
     ]
     query = (
         db.query(*args)
         .join(ExtraInfo, Order.id == ExtraInfo.id, isouter=True)
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
+        .join(Vendor, Order.vendor_code == Vendor.vendor_code, isouter=True)
     )
     table_mapping = {
         "ExtraInfo": ["tags", "checked", "attention"],
@@ -233,9 +236,10 @@ def get_all_orders(
 
 def get_order_detail(db: Session, book_id: int):
     query = (
-        db.query(Order, ExtraInfo, TrackingNote)
+        db.query(Order, ExtraInfo, TrackingNote, Vendor)
         .join(ExtraInfo, Order.id == ExtraInfo.id, isouter=True)
         .join(TrackingNote, Order.id == TrackingNote.book_id, isouter=True)
+        .join(Vendor, Order.vendor_code == Vendor.vendor_code, isouter=True)
         .filter(Order.id == book_id)
         .first()
     )

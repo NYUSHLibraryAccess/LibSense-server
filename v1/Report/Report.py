@@ -1,14 +1,12 @@
 import os
 import glob
 import pandas as pd
-from datetime import date
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from core.schema import *
 from core.gmail.tools import LibSenseEmail
 from core.database import crud
 from core.utils.dependencies import get_db, validate_auth
-from v1.Order.Order import get_tags
 
 router = APIRouter(prefix="/report", tags=["Report"], dependencies=[Depends(validate_auth)])
 
