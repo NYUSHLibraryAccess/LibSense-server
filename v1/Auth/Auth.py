@@ -3,7 +3,7 @@ import time
 from fastapi import status, APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
-from core.utils.dependencies import get_db, validate_auth
+from core.utils.dependencies import get_db, validate_auth, validate_privilege
 from core import schema
 from typing import List
 
@@ -36,25 +36,30 @@ def logout(request: Request, response: Response):
     return {"msg": "Successfully logged out"}
 
 
-@router.get("/all-users", dependencies=[Depends(validate_auth)], response_model=List[schema.SystemUser])
+@router.get("/all-users",
+            response_model=List[schema.SystemUser],
+            dependencies=[Depends(validate_auth), Depends(validate_privilege)])
 def all_users(request: Request, db: Session = Depends(get_db)):
     if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Unauthorized request. Please login or refresh the page")
+                            detail="Unauthorized request. Please login or refresh the page.")
     else:
         return crud.all_users(db)
 
 
-@router.post("/add-user", response_model=schema.SystemUser, dependencies=[Depends(validate_auth)])
+@router.post("/add-user",
+             response_model=schema.SystemUser,
+             dependencies=[Depends(validate_auth), Depends(validate_privilege)])
 def add_user(request: Request, payload: schema.NewSystemUser, db: Session = Depends(get_db)):
     if request.session.get("role") != schema.EnumRole.SYS_ADMIN:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Unauthorized request. Please login or refresh the page")
+                            detail="Unauthorized request. Please login or refresh the page.")
     else:
         return crud.add_user(db, payload)
 
 
-@router.delete("/delete-user", dependencies=[Depends(validate_auth)], response_model=schema.BasicResponse)
+@router.delete("/delete-user", response_model=schema.BasicResponse,
+               dependencies=[Depends(validate_auth), Depends(validate_privilege)])
 def del_user(username: str, db: Session = Depends(get_db)):
     return crud.delete_user(db, username)
 

@@ -354,7 +354,7 @@ def mark_sensitive(db: Session, book_id: int):
             .filter(and_(
             Order.id == ExtraInfo.id,
             Order.barcode == order.barcode,
-            ExtraInfo.tags.notlike("Sensitive"))) \
+            ExtraInfo.tags.notlike("Sensitive")))\
             .update({"tags": ExtraInfo.tags + "[Sensitive]"}, synchronize_session='fetch')
     db.commit()
 

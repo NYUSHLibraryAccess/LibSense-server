@@ -106,5 +106,6 @@ async def delete_preset(
 ):
     result = crud.delete_preset(db, preset_id, request.session["username"])
     if result == -1:
-        raise HTTPException(status_code=500, detail="Error when deleting preset")
+        raise HTTPException(status_code=500,
+                detail="Error when deleting preset. User can only delete preset that he/she created.")
     return result

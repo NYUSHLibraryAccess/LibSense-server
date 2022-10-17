@@ -4,7 +4,7 @@ from fastapi import Depends, APIRouter, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from core.database import crud
 from core.database.utils import convert_sqlalchemy_objs_to_dict
-from core.utils.dependencies import get_db, validate_auth
+from core.utils.dependencies import get_db, validate_auth, validate_privilege
 
 router = APIRouter(prefix="/orders", tags=["Order"], dependencies=[Depends(validate_auth)])
 
@@ -95,7 +95,7 @@ def get_order_detail(
     return convert_sqlalchemy_objs_to_dict(order, extra_info, tracking_note)
 
 
-@router.patch("/all-orders/detail", response_model=BasicResponse)
+@router.patch("/all-orders/detail", response_model=BasicResponse, dependencies=[Depends(validate_privilege)])
 def update_order(request: Request, body: PatchOrderRequest, db: Session = Depends(get_db)):
     # Full upload. Null is treated as set NULL.
     if body.cdl:
@@ -150,17 +150,20 @@ def update_order(request: Request, body: PatchOrderRequest, db: Session = Depend
     return BasicResponse(msg="Success")
 
 
-@router.post("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
+@router.post("/cdl", tags=["CDL Orders"], response_model=BasicResponse, dependencies=[Depends(validate_privilege)])
 def new_cdl_order(body: NewCDLRequest, db: Session = Depends(get_db)):
     return crud.new_cdl_order(db, body)
 
 
-@router.delete("/cdl", tags=["CDL Orders"], response_model=BasicResponse)
+@router.delete("/cdl", tags=["CDL Orders"], response_model=BasicResponse, dependencies=[Depends(validate_privilege)])
 def del_cdl_order(book_id: int = Query(None, alias="bookId"), db: Session = Depends(get_db)):
     return crud.del_cdl_order(db, book_id)
 
 
-@router.post("/cdl/reset-vendor-date", tags=["CDL Orders"], response_model=BasicResponse)
+@router.post("/cdl/reset-vendor-date",
+             tags=["CDL Orders"],
+             response_model=BasicResponse,
+             dependencies=[Depends(validate_privilege)])
 def reset_cdl_vendor_date(body: UpdateCDLVendorDateRequest):
     with open("configs/config.json") as f:
         config = json.loads(f.read())
