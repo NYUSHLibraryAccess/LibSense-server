@@ -90,8 +90,10 @@ def tag_finder(order_row, local_vendors, sensitive_barcodes):
         or (sensitive_barcodes[sensitive_barcodes["barcode"] == order_row["barcode"]].shape[0] == 1):
         tags.append("Sensitive")
 
-    if order_row["cdl_flag"] == 1 or ("CDL" not in tags and order_row["cdl_flag"] != -1):
+    if order_row["cdl_flag"] == 1 and "CDL" not in tags:
         tags.append("CDL")
+    elif order_row["cdl_flag"] == -1 and "CDL" in tags:
+        tags.remove("CDL")
 
     return Tags.encode_tags(tags)
 
@@ -267,8 +269,9 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
 
     logger.info("UPDATING PHASE COMPLETED")
 
-    to_insert.to_csv(f"./assets/to_insert/{datetime.strftime(datetime.now(), '%Y%m%d_%H:%M:%S')}_to_insert.csv")
-    to_del.to_csv(f"./assets/to_del/{datetime.strftime(datetime.now(), '%Y%m%d_%H:%M:%S')}_to_del.csv")
+    ts = datetime.strftime(datetime.now(), '%Y%m%d_%H:%M:%S')
+    to_insert.to_csv(f"./assets/to_insert/" + ts + "_to_insert.csv")
+    to_del.to_csv(f"./assets/to_del/" + ts + "_to_del.csv")
     for idx, row in tqdm(to_del.iterrows()):
         db.query(Order).filter(Order.id == row["id"]).delete()
 
