@@ -2,7 +2,7 @@ import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from datetime import date
+from datetime import date, datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
@@ -267,7 +267,8 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
 
     logger.info("UPDATING PHASE COMPLETED")
 
-    to_del.to_csv(f"./assets/to_del/{date.strftime(date.today(), '%Y%m%d')}_to_del.csv")
+    to_insert.to_csv(f"./assets/to_insert/{datetime.strftime(datetime.now(), '%Y%m%d_%H:%M:%S')}_to_insert.csv")
+    to_del.to_csv(f"./assets/to_del/{datetime.strftime(datetime.now(), '%Y%m%d_%H:%M:%S')}_to_del.csv")
     for idx, row in tqdm(to_del.iterrows()):
         db.query(Order).filter(Order.id == row["id"]).delete()
 
