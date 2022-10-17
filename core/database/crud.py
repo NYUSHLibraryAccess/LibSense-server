@@ -318,7 +318,7 @@ def del_cdl_order(db: Session, book_id):
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
     db.delete(query)
     sql = text(
-        """UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = 0 WHERE id = %d;"""
+        """UPDATE extra_info SET tags = REPLACE(tags, '[CDL]', ''), cdl_flag = -1 WHERE id = %d;"""
         % book_id
     )
     db.execute(sql)
