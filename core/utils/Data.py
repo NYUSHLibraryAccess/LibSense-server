@@ -269,7 +269,7 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
 
     logger.info("UPDATING PHASE COMPLETED")
 
-    ts = datetime.strftime(datetime.now(), '%Y%m%d_%H:%M:%S')
+    ts = datetime.strftime(datetime.now(), '%Y%m%d_%H%M%S')
     to_insert.to_csv(f"./assets/to_insert/" + ts + "_to_insert.csv")
     to_del.to_csv(f"./assets/to_del/" + ts + "_to_del.csv")
     for idx, row in tqdm(to_del.iterrows()):
