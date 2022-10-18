@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from core.schema import *
-from core.gmail.tools import LibSenseEmail
+from core.gsuite.tools import LibSenseGSuite
 from core.database import crud
 from core.utils.dependencies import get_db, validate_auth
 
@@ -13,7 +13,8 @@ router = APIRouter(prefix="/report", tags=["Report"], dependencies=[Depends(vali
 
 @router.post("/send-report", response_model=BasicResponse)
 def send_report(payload: SendReportRequest, db: Session = Depends(get_db)):
-    service = LibSenseEmail()
+    service = LibSenseGSuite()
+    service.initialize_mail()
     today = date.today().strftime("%Y-%m-%d")
     attachments = {}
     count = {}

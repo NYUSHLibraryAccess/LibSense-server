@@ -19,9 +19,16 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
 
+
+# Google Drive Folder ID
+GDRIVE_FOLDER_ID = "16Ffwk-PefJv7MYiLEsUO7_FCcQ7B9MoV"
 # Request all access (permission to read/send/receive emails, manage the inbox, and more)
-SCOPES = ["https://mail.google.com/"]
+SCOPES = [
+    "https://mail.google.com/",
+    "https://www.googleapis.com/auth/drive"
+]
 LOGGEDIN = "LOGGEDIN"
 LOGGEDOFF = "LOGGEDOFF"
 
@@ -48,7 +55,7 @@ Generated Date: %s
 """
 
 
-class LibSenseEmail:
+class LibSenseGSuite:
     def __init__(self):
         self.status = LOGGEDOFF
         try:
@@ -59,8 +66,9 @@ class LibSenseEmail:
         except (FileNotFoundError, KeyError):
             raise BaseException("Please check the config file.")
 
-        self.service = self.authenticate()
         self.date = date.today().strftime("%Y-%m-%d")
+        self.creds = None
+        self.instance = None
 
     def authenticate(self):
         creds = None
@@ -79,10 +87,14 @@ class LibSenseEmail:
             # Save the credentials for the next run
             with open("configs/token.json", "w") as token:
                 token.write(creds.to_json())
+        self.creds = creds
+        return True
 
+    def initialize_mail(self):
+        self.authenticate()
         try:
             # Call the Gmail API
-            service = build("gmail", "v1", credentials=creds)
+            service = build("gsuite", "v1", credentials=self.creds)
             results = service.users().labels().list(userId="me").execute()
             labels = results.get("labels", [])
 
@@ -90,11 +102,22 @@ class LibSenseEmail:
                 print("No labels found.")
                 return
 
-            return service
+            self.instance = service
 
         except HttpError as error:
-            # TODO(developer) - Handle errors from gmail API.
-            print(f"An error occurred: {error}")
+            # TODO(developer) - Handle errors from gsuite API.
+            print(f"An error occurred when getting the Gmail instance: {error}")
+            return False
+
+    def initialize_drive(self):
+        self.authenticate()
+        try:
+            # create drive api client
+            service = build('drive', 'v3', credentials=self.creds)
+            self.instance = service
+
+        except HttpError as error:
+            print(F'An error occurred when getting the GDrive instance: {error}')
             return False
 
     def add_attachment(self, message, filename):
@@ -133,7 +156,7 @@ class LibSenseEmail:
 
     def send_message(self, destination, nickname, count, attachments):
         return (
-            self.service.users()
+            self.instance.users()
             .messages()
             .send(userId="me", body=self.build_message(destination, nickname, count, attachments))
             .execute()
@@ -141,3 +164,17 @@ class LibSenseEmail:
 
     def flush_date(self):
         self.date = date.today().strftime("%Y-%m-%d")
+
+    def upload_file(self, filename, filepath):
+        try:
+            # create drive api client
+            file_metadata = {'name': filename, "parents": [GDRIVE_FOLDER_ID]}
+            media = MediaFileUpload(filepath)
+            # pylint: disable=maybe-no-member
+            file = self.instance.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            print(F'File ID: {file.get("id")}')
+
+        except HttpError as error:
+            print(F'An error occurred: {error}')
+            return False
+        return True
