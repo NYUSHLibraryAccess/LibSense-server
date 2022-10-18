@@ -31,7 +31,7 @@ def mysql_backup(username=None, password=None):
     service.initialize_drive()
     result = service.upload_file(f"libsense_{ts}.sql", target_path)
     if result:
-        return BasicResponse(msg="Success")
+        return BasicResponse(msg=f"Last backup time: {ts}")
     else:
         raise HTTPException(status_code=500, detail="An error occurs when uploading the file.")
 
