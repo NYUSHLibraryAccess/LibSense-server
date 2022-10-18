@@ -94,7 +94,7 @@ class LibSenseGSuite:
         self.authenticate()
         try:
             # Call the Gmail API
-            service = build("gsuite", "v1", credentials=self.creds)
+            service = build("gmail", "v1", credentials=self.creds)
             results = service.users().labels().list(userId="me").execute()
             labels = results.get("labels", [])
 
