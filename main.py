@@ -7,12 +7,14 @@
 import os
 import json
 import uvicorn
+from pydantic import BaseSettings
 from redis import Redis
 from starlette_session import SessionMiddleware
 from starlette_session.backends import BackendType
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.logger import CustomizeLogger
+from core.schema import Overview
 from v1 import api
 
 with open("configs/config.json") as cfg:
@@ -22,6 +24,10 @@ with open("configs/config.json") as cfg:
 
 ENV = os.getenv("LIBSENSE_ENV", "PROD")
 logger = CustomizeLogger.make_logger(ENV)
+
+
+class SystemSettings(BaseSettings):
+    overview: Overview
 
 
 def create_app() -> FastAPI:

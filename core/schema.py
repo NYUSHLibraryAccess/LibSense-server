@@ -156,8 +156,10 @@ class Order(CamelModel):
     barcode: Optional[str]
     title: Optional[str]
     order_number: str
+    est_arrival: Optional[str]
     created_date: Optional[date]
     arrival_date: Optional[date]
+    est_arrival: Optional[date]
     ips_code: Optional[str]
     ips: Optional[str]
     ips_date: Optional[date]
@@ -166,6 +168,7 @@ class Order(CamelModel):
     tags: List[str]
     attention: Optional[bool]
     checked: Optional[bool]
+    check_anyway: Optional[bool]
     override_reminder_time: Optional[date]
     tracking_note: Optional[str]
 
@@ -248,7 +251,6 @@ class CDLOrder(Order):
 
 
 class CDLOrderDetail(CDLOrder, OrderDetail):
-    order_purchased_date: Optional[date]
     due_date: Optional[date]
     physical_copy_status: Optional[Union[PhysicalCopyStatus, None]]
     vendor_file_url: Optional[str]
@@ -265,7 +267,6 @@ class CDLRequest(CamelModel):
     pdf_delivery_date: Optional[date]
     back_to_karms_date: Optional[Union[date, str]]
     circ_pdf_url: Optional[str]
-    order_purchased_date: Optional[date]
     due_date: Optional[date]
     physical_copy_status: Optional[str]
     vendor_file_url: Optional[str]
@@ -282,9 +283,11 @@ class NewCDLRequest(CamelModel):
 class PatchOrderRequest(CamelModel):
     book_id: int
     tracking_note: Optional[str]
-    checked: Optional[bool] = "undefined"
-    attention: Optional[bool] = "undefined"
-    override_reminder_time: Optional[date] = "undefined"
+    checked: Optional[bool]
+    check_anyway: Optional[bool]
+    attention: Optional[bool]
+    override_reminder_time: Optional[date]
+    sensitive: Optional[bool]
     cdl: Optional[CDLRequest] = None
 
 
@@ -355,3 +358,9 @@ class SendReportRequest(CamelModel):
 
 class UpdateCDLVendorDateRequest(CamelModel):
     date: date
+
+
+class LibSenseException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)

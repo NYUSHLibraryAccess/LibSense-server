@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from core.database import crud
 from loguru import logger
 from core import schema
-from core.utils.dependencies import get_db, validate_auth
+from core.utils.dependencies import get_db, validate_auth, validate_privilege
 
 router = APIRouter(prefix="/data", tags=["Data"], dependencies=[Depends(validate_auth)])
 
@@ -40,7 +40,7 @@ async def async_upload_handler(file, output_file, file_size):
         )
 
 
-@router.post("/upload", response_model=schema.BasicResponse)
+@router.post("/upload", response_model=schema.BasicResponse, dependencies=[Depends(validate_privilege)])
 async def upload_file(
         db: Session = Depends(get_db),
         file: UploadFile = File(...),
@@ -58,7 +58,7 @@ async def upload_file(
     return {"msg": "Successfully uploaded file: %s" % file.filename}
 
 
-@router.post("/upload-sensitive")
+@router.post("/upload-sensitive", dependencies=[Depends(validate_privilege)])
 async def update_sensitive(
         db: Session = Depends(get_db),
         file: UploadFile = File(...),
