@@ -41,6 +41,7 @@ def get_overdue_rush_local(
         filters=None,
         sorter=None,
         for_pandas=False,
+        fuzzy=None,
         **kwargs,
 ):
     if filters is None:
@@ -83,8 +84,9 @@ def get_overdue_rush_local(
     # fixed_filters = [schema.FieldFilter(op="in", col="tags", val=["Rush", "Local"])]
     # filters.extend(fixed_filters)
 
+
     query, total_records = compile_query(
-        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
+        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix, fuzzy
     )
 
     if for_pandas:
@@ -100,6 +102,7 @@ def get_overdue_cdl(
         filters=None,
         sorter=None,
         for_pandas=False,
+        fuzzy=None,
         **kwargs,
 ):
     args = [
@@ -140,7 +143,7 @@ def get_overdue_cdl(
     )
 
     query, total_records = compile_query(
-        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix
+        query, filters, table_mapping, sorter, Order.id, page_index, page_size, suffix, fuzzy,
     )
 
     if for_pandas:
@@ -219,7 +222,6 @@ def get_all_orders(
         "TrackingNote": ["tracking_note"],
         "default": "Order",
     }
-    fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
     query, total_records = compile_query(
         query,
         filters,
@@ -229,7 +231,6 @@ def get_all_orders(
         page_index,
         page_size,
         fuzzy=fuzzy,
-        fuzzy_cols=fuzzy_cols,
     )
     return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
@@ -280,7 +281,6 @@ def get_all_cdl(
         ],
         "default": "Order",
     }
-    fuzzy_cols = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
     query, total_records = compile_query(
         query,
         filters,
@@ -290,7 +290,6 @@ def get_all_cdl(
         page_index,
         page_size,
         fuzzy=fuzzy,
-        fuzzy_cols=fuzzy_cols,
     )
     return query.all(), page_index * page_size + total_records if total_records != 0 else 0
 
