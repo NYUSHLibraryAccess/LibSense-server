@@ -3,7 +3,9 @@ from sqlalchemy import and_, or_
 
 from core import schema
 from core.database.database import Base
-from core.database.model import MAPPING
+from core.database.model import MAPPING, Order
+
+FUZZY_COLS = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
 
 
 def compile_filters(query, filters, table_mapping):
@@ -78,6 +80,8 @@ def compile_query(
     fuzzy=None,
     fuzzy_cols=None,
 ):
+    if fuzzy_cols is None:
+        fuzzy_cols = FUZZY_COLS
     if filters and table_mapping:
         query = compile_filters(query, filters, table_mapping)
     if fuzzy and fuzzy_cols:
