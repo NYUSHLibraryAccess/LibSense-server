@@ -3,10 +3,12 @@ import pandas as pd
 from tqdm import tqdm
 from sqlalchemy import text, func, insert, and_, delete
 from sqlalchemy.orm import Session
+from fastapi.concurrency import run_in_threadpool
 
 from core import schema
 from core.database.utils import compile_query
 from core.database.model import Order, ExtraInfo, TrackingNote, CDLOrder, User, Vendor, Preset, SensitiveBarcode
+from core.utils.Data import flush_tags_upon_vendor_update
 
 
 def login(db: Session, username, password):
@@ -481,24 +483,27 @@ def get_vendor(db: Session, code: str):
     return db.query(Vendor).filter(Vendor.vendor_code == code).first()
 
 
-def update_vendor(db: Session, vendor: schema.Vendor):
+async def update_vendor(db: Session, vendor: schema.Vendor):
     db.query(Vendor).filter(Vendor.vendor_code == vendor.vendor_code).update(vendor.__dict__)
     db.commit()
+    await run_in_threadpool(lambda: flush_tags_upon_vendor_update(db, vendor.vendor_code))
     return schema.BasicResponse(msg="Success")
 
 
-def add_vendor(db: Session, vendor: schema.Vendor):
+async def add_vendor(db: Session, vendor: schema.Vendor):
     new_vendor = Vendor(**vendor.__dict__)
     db.add(new_vendor)
     db.commit()
+    await run_in_threadpool(lambda: flush_tags_upon_vendor_update(db, vendor.vendor_code))
     db.refresh(new_vendor)
     return new_vendor
 
 
-def delete_vendor(db: Session, vendor_code):
+async def delete_vendor(db: Session, vendor_code):
     vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
     db.delete(vendor)
     db.commit()
+    await run_in_threadpool(lambda: flush_tags_upon_vendor_update(db, vendor_code))
     return schema.BasicResponse(msg="Success")
 
 

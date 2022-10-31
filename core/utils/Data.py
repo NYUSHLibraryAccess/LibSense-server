@@ -7,7 +7,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
 from core.database import crud
-from core.schema import Tags, CDLStatus, PhysicalCopyStatus
+from core.schema import Tags, CDLStatus, PhysicalCopyStatus, LibSenseException
 from core.database.model import Order
 from core.database.database import engine
 
@@ -292,7 +292,12 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
     return True
 
 
-def flush_tags(db):
+def flush_tags(db: Session):
+    """
+    Flush tags of *ALL* records in the system.
+    :param db: SQLAlchemy ORM Session
+    :return: True on successful completion.
+    """
     logger.info("TAG FLUSH STARTED")
     conn = db.get_bind()
     nyc_orders = pd.read_sql_query("""
@@ -315,6 +320,31 @@ def flush_tags(db):
                                     "cdl_status": CDLStatus.REQUESTED,
                                     "physical_status": PhysicalCopyStatus.NOT_ARRIVED})
 
+        stmt = text(
+            "INSERT INTO extra_info (id, order_number, tags) "
+            "VALUES (:id, :order_number, :tags) "
+            "ON DUPLICATE KEY UPDATE "
+            "tags = :tags;"
+        )
+        conn.execute(stmt, {"id": row["id"], "order_number": row["order_number"], "tags": tags})
+    logger.info("TAG FLUSH COMPLETED")
+
+    return True
+
+
+def flush_tags_upon_vendor_update(db: Session, vendor: str):
+    vendor = vendor.replace("'", "''")
+    logger.info(f"TAG FLUSH TRIGGERED BY VENDOR {vendor}.")
+    conn = db.get_bind()
+    nyc_orders = pd.read_sql_query(f"""
+        select n.*, notes.tracking_note, ei.cdl_flag, ei.tags
+        from nyc_orders n left outer join extra_info ei on n.id = ei.id
+        left outer join notes on n.id = notes.book_id
+        where n.vendor_code = '{vendor}'""", con=conn)
+    sensitive_barcodes = pd.read_sql_query("select barcode from sensitive_barcode", con=conn)
+    local_vendors = [i.vendor_code for i in crud.get_local_vendors(db)]
+    for _, row in tqdm(nyc_orders.iterrows()):
+        tags = tag_finder(row, local_vendors, sensitive_barcodes)
         stmt = text(
             "INSERT INTO extra_info (id, order_number, tags) "
             "VALUES (:id, :order_number, :tags) "
