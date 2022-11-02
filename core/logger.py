@@ -43,7 +43,7 @@ class CustomizeLogger:
             log_path, f"""{(ENV + "_") if ENV else ""}LibSense"""
         )
         logger.add(sys.stdout, enqueue=True, backtrace=True, level="INFO")
-        logger.add(str(log_path + "_{time}.log"), rotation="23:59", retention="30 days")
+        logger.add(str(log_path + "_{time}.log"), rotation="2:59", retention="30 days")
         logging.basicConfig(handlers=[InterceptHandler()], level=0)
         logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
         for _log in ["uvicorn", "uvicorn.error", "fastapi"]:
