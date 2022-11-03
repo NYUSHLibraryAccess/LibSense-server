@@ -93,7 +93,8 @@ def get_order_detail(
         (cdl, order, extra_info, tracking_note) = crud.get_cdl_detail(db, book_id)
     else:
         (order, extra_info, tracking_note, vendor) = crud.get_order_detail(db, book_id)
-        if vendor.notify_in is not None:
+        # vendor could not have been added to system for new orders.
+        if vendor and vendor.notify_in:
             order.est_arrival = order.created_date + timedelta(days=vendor.notify_in)
 
     extra_info.tags = Tags.split_tags(extra_info.tags)
