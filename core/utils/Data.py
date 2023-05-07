@@ -7,9 +7,8 @@ from sqlalchemy.sql import text
 from sqlalchemy.orm import Session
 from loguru import logger
 from core.database import crud
-from core.schema import Tags, CDLStatus, PhysicalCopyStatus, LibSenseException
+from core.schema import Tags, CDLStatus, PhysicalCopyStatus
 from core.database.model import Order
-from core.database.database import engine
 
 pd.options.mode.chained_assignment = None
 
@@ -142,7 +141,7 @@ def clean_data(df):
 
 def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
     logger.info("DATA INGESTION STARTED")
-    cnx = engine.connect()
+    cnx = db.get_bind()
     prev = pd.read_sql_table("nyc_orders", cnx)
     prev = prev.astype(str)
     path_lst = path.split(".")

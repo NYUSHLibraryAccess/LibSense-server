@@ -81,7 +81,7 @@ class ExtraInfo(Base):
     order_number = Column(String)
     tags = Column(String)
     reminder_receiver = Column(String)
-    cdl_flag = Column(Boolean)
+    cdl_flag = Column(Integer)
     checked = Column(Boolean)
     check_anyway = Column(Boolean)
     override_reminder_time = Column(DateTime)
