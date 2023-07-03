@@ -5,10 +5,18 @@ from core import schema
 from core.database.database import Base
 from core.database.model import MAPPING, Order
 
+# All columns that supports fuzzy search box in front-end
 FUZZY_COLS = [Order.barcode, Order.bsn, Order.library_note, Order.title, Order.order_number]
 
 
 def compile_filters(query, filters, table_mapping):
+    """
+    Combine all the filters from the user request.
+    :param query: The SQLAlchemy Query object.
+    :param filters: The filters from user request
+    :param table_mapping: The table-to-column name mapping
+    :return: SQLAlchemy Query Object with the filters added.
+    """
     sql_filters = []
     for f in filters:
         target_table = None
@@ -46,6 +54,14 @@ def compile_filters(query, filters, table_mapping):
 
 
 def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
+    """
+    Combine the query with sorter options from user request.
+    :param query: SQLAlchemy Query Object.
+    :param sorter: Sorter from user request.
+    :param table_mapping: The table-to-column mapping.
+    :param backup_sort_key: Backup key in case of draw.
+    :return: SQLAlchemy Query Object with sorting added.
+    """
     target_table = None
     for table_name, columns in table_mapping.items():
         if decamelize(sorter.col) in columns:
@@ -61,6 +77,13 @@ def compile_sorters(query, sorter, table_mapping, backup_sort_key=None):
 
 
 def compile_fuzzy(query, fuzzy, fuzzy_cols):
+    """
+    Compile the search for fuzzy searching feature.
+    :param query: SQLAlchemy Query Object.
+    :param fuzzy: The fuzzy search content.
+    :param fuzzy_cols: The columns that supports fuzzy_search.
+    :return: SQLAlchemy Query Object, with fuzzy search added.
+    """
     fuzzy_filters = []
     for col in fuzzy_cols:
         fuzzy_filters.append(col.like("%" + fuzzy + "%"))
@@ -80,6 +103,20 @@ def compile_query(
     fuzzy=None,
     fuzzy_cols=None,
 ):
+    """
+    Combine all the query params and return the result.
+    :param query: Original SQLAlchemy Query Object.
+    :param filters: The filters from user input.
+    :param table_mapping: The table-column mapping.
+    :param sorter: The sorters from user input.
+    :param default_key: Default key in sorting in case of draw.
+    :param start_idx: Pagination: Start query from this index.
+    :param limit: Pagination: The number of records to be returned.
+    :param suffix: Any RAW SQL suffix for the query.
+    :param fuzzy: Fuzzy search contents.
+    :param fuzzy_cols: Fuzzy search target columns.
+    :return: Query result.
+    """
     if fuzzy_cols is None:
         fuzzy_cols = FUZZY_COLS
     if filters and table_mapping:
@@ -99,6 +136,9 @@ def compile_query(
 
 
 def convert_sqlalchemy_objs_to_dict(*args):
+    """
+    Convert SQLAlchemy Query Result to native Python Dicts.
+    """
     d = {}
     for i in args:
         if isinstance(i, Base):

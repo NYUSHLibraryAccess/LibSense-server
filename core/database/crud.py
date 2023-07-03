@@ -46,6 +46,9 @@ def get_overdue_rush_local(
         fuzzy=None,
         **kwargs,
 ):
+    """
+    Query the Rush & Local orders that are past due (Exceeds Vendor delivery length).
+    """
     if filters is None:
         filters = []
     args = [
@@ -107,6 +110,9 @@ def get_overdue_cdl(
         fuzzy=None,
         **kwargs,
 ):
+    """
+    Query the Rush & Local orders that are past due (Exceeds Avg. Scanning time).
+    """
     args = [
         *CDLOrder.__table__.c,
         *Order.__table__.c,
@@ -163,6 +169,9 @@ def get_sh_order_report(
         for_pandas=False,
         **kwargs,
 ):
+    """
+    Query the orders that belongs to NYUSH library (field sublibrary == 'NSHNG').
+    """
     if filters is None:
         filters = []
     args = [
@@ -207,6 +216,9 @@ def get_all_orders(
         fuzzy=None,
         **kwargs,
 ):
+    """
+    Query basic info of all orders from the system (includes CDL).
+    """
     args = [
         *Order.__table__.c,
         *ExtraInfo.__table__.c,
@@ -238,6 +250,9 @@ def get_all_orders(
 
 
 def get_order_detail(db: Session, book_id: int):
+    """
+    Get the detail information of an order.
+    """
     query = (
         db.query(Order, ExtraInfo, TrackingNote, Vendor)
         .join(ExtraInfo, Order.id == ExtraInfo.id, isouter=True)
@@ -258,6 +273,9 @@ def get_all_cdl(
         fuzzy=None,
         **kwargs,
 ):
+    """
+    Get all CDL orders basic info.
+    """
     args = [
         *CDLOrder.__table__.c,
         *Order.__table__.c,
@@ -297,6 +315,9 @@ def get_all_cdl(
 
 
 def get_cdl_detail(db: Session, book_id: int):
+    """
+    Query detailed info of a CDL order.
+    """
     query = (
         db.query(CDLOrder, Order, ExtraInfo, TrackingNote)
         .join(Order, CDLOrder.book_id == Order.id)
@@ -309,7 +330,11 @@ def get_cdl_detail(db: Session, book_id: int):
 
 
 def new_cdl_order(db: Session, body: schema.PatchOrderRequest):
+    """
+    Manually Mark an order as CDL.
+    """
     created_date = db.query(Order.created_date).filter(Order.id == body.book_id)
+    # Add the order to the cdl_info table, and change the tags in the extra_info table
     cdl = CDLOrder(book_id=body.book_id, order_request_date=created_date)
     db.add(cdl)
     db.query(ExtraInfo).filter(ExtraInfo.id == body.book_id).update(
@@ -320,6 +345,11 @@ def new_cdl_order(db: Session, body: schema.PatchOrderRequest):
 
 
 def del_cdl_order(db: Session, book_id):
+    """
+    Manually delete a CDL order from system.
+    """
+
+    # Delete from cdl_info table and remove the tags
     query = db.query(CDLOrder).filter(CDLOrder.book_id == book_id).first()
     db.delete(query)
     sql = text(
@@ -332,6 +362,9 @@ def del_cdl_order(db: Session, book_id):
 
 
 def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
+    """
+    Update the information of a CDL order.
+    """
     cdl_dict = {k: v for k, v in body.cdl.__dict__.items() if k != "tracking_note"}
     db.query(CDLOrder).filter(CDLOrder.book_id == body.book_id).update(cdl_dict)
     db.commit()
@@ -339,6 +372,9 @@ def update_cdl_order(db: Session, body: schema.PatchOrderRequest):
 
 
 def update_normal_order(db: Session, body: schema.PatchOrderRequest):
+    """
+    Update the information of a normal order.
+    """
     cols = ["checked", "attention", "override_reminder_time"]
     info_dict = {k: v for k, v in body.__dict__.items() if k in cols}
     if len(info_dict.keys()) > 0:
@@ -347,10 +383,17 @@ def update_normal_order(db: Session, body: schema.PatchOrderRequest):
 
 
 def mark_sensitive(db: Session, book_id: int):
+    """
+    Manually mark an order as sensitive order.
+    """
+
     order = db.query(Order).filter(Order.id == book_id).first()
+    # The function will only work for barcode without "-".
+    # This is a business requirement. If any concern, please check with business user.
     if "-" in order.barcode:
         raise schema.LibSenseException("Barcode has not finalized yet.")
 
+    # Check if the barcode already exists.
     existence = db.query(SensitiveBarcode).filter(SensitiveBarcode.barcode == order.barcode).count()
     if existence == 0:
         stmt = insert(SensitiveBarcode).values(barcode=order.barcode).prefix_with("IGNORE")
@@ -365,6 +408,9 @@ def mark_sensitive(db: Session, book_id: int):
 
 
 def cancel_sensitive(db: Session, book_id):
+    """
+    Manually unmark an order as sensitive barcode.
+    """
     order = db.query(Order).filter(Order.id == book_id).first()
     if "-" in order.barcode:
         raise schema.LibSenseException("Barcode has not finalized yet.")
@@ -385,6 +431,9 @@ def cancel_sensitive(db: Session, book_id):
 
 
 def mark_order_attention(db: Session, book_ids, direction):
+    """
+    Mark one book as Attention-Required (will be highlighted in front-end)
+    """
     for book in book_ids:
         db.query(ExtraInfo).filter(ExtraInfo.id == book).update({ExtraInfo.attention: direction})
     db.commit()
@@ -392,6 +441,11 @@ def mark_order_attention(db: Session, book_ids, direction):
 
 
 def mark_order_checked(db: Session, book_ids, direction, date):
+    """
+    Mark the order as checked until the specified date.
+    If the date passes that specified date, the order will be shown as `Needs to be checked`
+    if the book is still in abnormal condition (detailed condition varies by type of book).
+    """
     for book in book_ids:
         db.query(ExtraInfo).filter(ExtraInfo.id == book).update(
             {
@@ -404,6 +458,12 @@ def mark_order_checked(db: Session, book_ids, direction, date):
 
 
 def check_anyway(db: Session, book_id: int, direction: bool):
+    """
+    Mark a normal book (Rush-Local and CDL only) as `Needs to be checked`.
+    This will override the `mark_as_checked` function above.
+    direction == 1/true: Mark as Needs to be checked
+    direction == 0/false: Unmark
+    """
     if direction:
         tags = db.query(ExtraInfo.tags).filter(ExtraInfo.id == book_id).first()[0]
         if not (("[Rush]" in tags and "[Local]" in tags) or ("[CDL]" in tags)):
@@ -413,10 +473,19 @@ def check_anyway(db: Session, book_id: int, direction: bool):
 
 
 def get_tracking_note(db: Session, book_id: int):
+    """
+    Get the tracking note of the book.
+    Due to historical design reasons, the DB schema has a 1-to-many relationship
+    But the user only needs one note and keep updating it.
+    Therefore, we only take the first one here.
+    """
     return db.query(TrackingNote).filter(TrackingNote.book_id == book_id).first()
 
 
 def add_tracking_note(db: Session, note: schema.TrackingNote):
+    """
+    Add a new tracking note to the book.
+    """
     new_note = TrackingNote(**note.__dict__)
     db.add(new_note)
     db.commit()
@@ -425,33 +494,49 @@ def add_tracking_note(db: Session, note: schema.TrackingNote):
 
 
 def update_tracking_note(db: Session, note: schema.TrackingNote):
+    """
+    Update the tracking note.
+    """
     db.query(TrackingNote).filter(TrackingNote.book_id == note.book_id).update(note.__dict__)
     db.commit()
     return schema.BasicResponse(msg="Success")
 
 
 def delete_tracking_note(db: Session, book_id: int):
+    """
+    Delete a tracking note
+    """
     note = db.query(TrackingNote).filter(TrackingNote.book_id == book_id).first()
     db.delete(note)
     db.commit()
 
 
 def get_starting_position(db: Session, barcode: int, order_number: str):
+    """
+    Deprecated.
+    """
     query = (
         db.query(Order).filter(Order.barcode == barcode, Order.order_number == order_number).all()
     )
     return query[0].id if len(query) == 1 else -1
 
 
-def update_sensitive(db: Session, output_file):
-    if output_file.split(".")[-1] == "csv":
-        df = pd.read_csv(output_file, dtype=str, header=None)
+def update_sensitive(db: Session, input_file):
+    """
+    Update the sensitive barcodes database.
+    The input_file is a csv/excel document with only one column, without any header
+    The barcodes will be inserted if it does not exist.
+    """
+
+    if input_file.split(".")[-1] == "csv":
+        df = pd.read_csv(input_file, dtype=str, header=None)
     else:
-        df = pd.read_excel(output_file, dtype=str, header=None)
+        df = pd.read_excel(input_file, dtype=str, header=None)
     for _, row in tqdm(df.iterrows()):
         stmt = insert(SensitiveBarcode).values(barcode=row.iloc[0]).prefix_with("IGNORE")
         db.execute(stmt)
 
+        # Upon each insertion, update the tag of orders that has this barcode.
         db.query(ExtraInfo) \
             .filter(and_(
             Order.id == ExtraInfo.id,
@@ -480,20 +565,31 @@ def get_local_vendors(db: Session):
 
 
 def get_vendor(db: Session, code: str):
+    """
+    Get the information of a single vendor
+    """
     return db.query(Vendor).filter(Vendor.vendor_code == code).first()
 
 
 async def update_vendor(db: Session, vendor: schema.Vendor):
+    """
+    Update the information of a single vendor
+    """
     db.query(Vendor).filter(Vendor.vendor_code == vendor.vendor_code).update(vendor.__dict__)
     db.commit()
+    # Flush order information under this vendor
     await run_in_threadpool(lambda: flush_tags_upon_vendor_update(db, vendor.vendor_code))
     return schema.BasicResponse(msg="Success")
 
 
 async def add_vendor(db: Session, vendor: schema.Vendor):
+    """
+    Add a new vendor in the system.
+    """
     new_vendor = Vendor(**vendor.__dict__)
     db.add(new_vendor)
     db.commit()
+    # Flush order information under this vendor
     await run_in_threadpool(lambda: flush_tags_upon_vendor_update(db, vendor.vendor_code))
     db.refresh(new_vendor)
     return new_vendor
@@ -503,6 +599,7 @@ async def delete_vendor(db: Session, vendor_code):
     vendor = db.query(Vendor).filter(Vendor.vendor_code == vendor_code).first()
     db.delete(vendor)
     db.commit()
+    # Flush order information under this vendor
     await run_in_threadpool(lambda: flush_tags_upon_vendor_update(db, vendor_code))
     return schema.BasicResponse(msg="Success")
 
@@ -512,6 +609,9 @@ def get_all_presets(db: Session, username):
 
 
 def add_preset(db: Session, preset, preset_id=None):
+    """
+    Add a new preset into the system
+    """
     next_preset_id = preset_id or (db.query(func.max(Preset.preset_id)).scalar() or 0) + 1
     for preset_row in preset:
         db.add(Preset(**preset_row, preset_id=next_preset_id))
@@ -521,6 +621,9 @@ def add_preset(db: Session, preset, preset_id=None):
 
 
 def update_preset(db: Session, preset, preset_id, username):
+    """
+    Update the information of a preset.
+    """
     target_preset = (
         db.query(Preset).filter(Preset.preset_id == preset_id).filter(Preset.creator == username)
     )
@@ -536,6 +639,9 @@ def update_preset(db: Session, preset, preset_id, username):
 
 
 def delete_preset(db: Session, preset_id, username):
+    """
+    Delete a preset.
+    """
     target_preset = (
         db.query(Preset).filter(Preset.preset_id == preset_id).filter(Preset.creator == username)
     )
@@ -547,14 +653,23 @@ def delete_preset(db: Session, preset_id, username):
 
 
 def get_vendor_meta(db: Session):
+    """
+    Get all vendor codes.
+    """
     return db.query(Order.vendor_code).group_by(Order.vendor_code).all()
 
 
 def get_ips_meta(db: Session):
+    """
+    Get all IPS codes.
+    """
     return db.query(Order.ips_code).group_by(Order.ips_code).all()
 
 
 def get_physical_copy_meta(db: Session):
+    """
+    Get all physical copy status of CDL orders.
+    """
     return db.query(CDLOrder.physical_copy_status).group_by(CDLOrder.physical_copy_status).all()
 
 
@@ -593,6 +708,10 @@ def get_local_rush_pending(db: Session):
 
 
 def get_cdl_stats(db: Session, avg_only=False):
+    """
+    Get the statistics data of CDL Orders
+    starting from the date specified in configs/config.json["vendor_start_date"]
+    """
     with open("configs/config.json") as f:
         config = json.load(f)
         vendor_start_date = config["cdl_config"]["vendor_start_date"]
@@ -621,6 +740,10 @@ def get_cdl_stats(db: Session, avg_only=False):
 
 
 def get_cdl_scan_stats(db: Session):
+    """
+    Get the statistics data of CDL Orders in the scanning process
+    starting from the date specified in configs/config.json["vendor_start_date"]
+    """
     with open("configs/config.json") as f:
         config = json.load(f)
         vendor_start_date = config["cdl_config"]["vendor_start_date"]
@@ -636,6 +759,9 @@ def get_cdl_scan_stats(db: Session):
 
 
 def get_cdl_pending(db: Session):
+    """
+    Get the number of CDL orders that need to be checked.
+    """
     avg_days = get_cdl_scan_stats(db)["avg"]
     cdl = """
         select count(book_id)
@@ -649,6 +775,9 @@ def get_cdl_pending(db: Session):
 
 
 def get_average_days(db: Session):
+    """
+    Get the average complete time of all types of orders.
+    """
     rush_nyc = """
         select floor(avg(datediff(arrival_date, created_date))) as avg,
         floor(max(datediff(arrival_date, created_date))) as max,

@@ -33,6 +33,9 @@ def get_db():
 
 @router.post("/test", summary="Test API", tags=["Test"])
 def get_root(body: dict = Body(...)):
+    """
+    Internal probe api.
+    """
     if body.get("error", False):
         raise HTTPException(status_code=500)
     if body.get("badPayload", False):

@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+# Read from json config, connect to the database and creates a session for reuse.
 with open("configs/config.json") as config_file:
     config = json.load(config_file)["sql_config"]
 

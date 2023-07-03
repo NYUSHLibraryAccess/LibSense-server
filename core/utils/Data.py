@@ -12,6 +12,7 @@ from core.database.model import Order
 
 pd.options.mode.chained_assignment = None
 
+# Column name mapping from The New York Table (User Upload) to Table in Database.
 col_mapping = {
     "BSN": "bsn",
     "Z13_TITLE": "title",
@@ -44,7 +45,8 @@ col_mapping = {
     "Z68_LIBRARY_NOTE": "library_note",
 }
 
-date_rows = [
+# The columns that contains dates.
+date_columns = [
     "Z71_OPEN_DATE",
     "Z30_PROCESS_STATUS_DATE",
     "Z30_UPDATE_DATE",
@@ -55,6 +57,13 @@ date_rows = [
 
 
 def tag_finder(order_row, local_vendors, sensitive_barcodes):
+    """
+    Match the tags for the current order.
+    :param order_row: Current order.
+    :param local_vendors: Local vendor data.
+    :param sensitive_barcodes: Sensitive barcode data
+    :return: Tags of this order.
+    """
     tags = []
     keywords = {
         "Rush": ['Request', 'Need', 'Hold', 'Notify', 'CDL', 'ILL', 'Course', 'Reserve', 'Ares', 'Semester', 'Term',
@@ -98,6 +107,18 @@ def tag_finder(order_row, local_vendors, sensitive_barcodes):
 
 
 def dict_mapping(data: dict, mapping: dict):
+    """
+    Map a dict to another dict following a key mapping schema.
+    e.g. data = { "orig_key": 0 }
+
+    mapping = { "orig_key": "target_key" }
+
+    result = { "target_key": 0 }
+
+    :param data: Original dict.
+    :param mapping: Dict key mapping rules
+    :return: New mapped dict.
+    """
     result = {}
     for key, value in data.items():
         if key in mapping.keys():
@@ -106,6 +127,11 @@ def dict_mapping(data: dict, mapping: dict):
 
 
 def strf_date(x):
+    """
+    Convert the date to string.
+    :param x: Timestamp
+    :return: Str date, in "YYYY-MM-DD"
+    """
     if pd.isnull(x) or (isinstance(x, str) and len(x) == 0):
         return None
     str_x = str(int(float(x)))
@@ -113,16 +139,27 @@ def strf_date(x):
 
 
 def prepare_for_db(df):
+    """
+    Clean up the dataframe. Fill the nan and empty values
+    :param df: Orig df.
+    :return: Cleaned df.
+    """
     df = df.fillna(np.nan).replace([np.nan], [None])
     df = df.replace([""], [None])
     return df
 
 
 def clean_data(df):
+    """
+    Clean the user uploaded excel table
+    :param df: Orig df
+    :return: Cleaned df
+    """
     df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-    for d in date_rows:
+    for d in date_columns:
         df[d] = df[d].apply(strf_date)
 
+    # filter out and drop the duplicated and nan values.
     df = df.reset_index(drop=True)
     df = df.drop_duplicates()
     barcode_duplicates = df["Z30_BARCODE"].duplicated(keep="last")
@@ -133,6 +170,8 @@ def clean_data(df):
     df = df.join(barcode_nan)
     df = df[(df["barcode_duplicates"] == False) | (df["barcode_nan"] == True)]
     df = df.drop(["barcode_duplicates", "barcode_nan"], axis=1)
+
+    # join the price if it is separated by comma. e.g. "3,000.15" -> "3000.15"
     df["Z68_TOTAL_PRICE"] = df["Z68_TOTAL_PRICE"].fillna("")
     df["Z68_TOTAL_PRICE"] = df["Z68_TOTAL_PRICE"].apply(lambda x: "".join(x.split(",")))
     df = df.reset_index(drop=True)
@@ -140,8 +179,18 @@ def clean_data(df):
 
 
 def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
+    """
+    Compare with the current data in the database,
+    keep the old record, update the changed ones, and insert new ones.
+    :param db: The database session
+    :param path: Path to the user uploaded file
+    :return: None
+    """
     logger.info("DATA INGESTION STARTED")
     cnx = db.get_bind()
+
+    # prev: Data from database
+    # curr: Data from user upload
     prev = pd.read_sql_table("nyc_orders", cnx)
     prev = prev.astype(str)
     path_lst = path.split(".")
@@ -152,11 +201,13 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
 
     curr = clean_data(curr)
 
+    # filter out NYUSH orders only
     prev = prev[prev["order_number"].str.contains("NYUSH")]
     curr = curr[curr["Z68_ORDER_NUMBER"].str.contains("NYUSH")]
     prev["order_number"] = prev["order_number"].apply(lambda x: x[5:])
     curr["Z68_ORDER_NUMBER"] = curr["Z68_ORDER_NUMBER"].apply(lambda x: x[5:])
 
+    # Partition the data by year. This year and the previous 3 years. 4 in total.
     current_year = int(date.today().isoformat()[0:4])
     year_dict = {i: None for i in range(current_year - 3, current_year + 1)}
     for year in year_dict.keys():
@@ -174,9 +225,12 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
         del current_df["this_year"]
         year_dict[year] = current_df
 
+    # Sort the data by order_number.
+    # This is the only reliable column to determine the sequential ordering of orders.
     sorted_prev = pd.concat(list(year_dict.values()))
     sorted_prev.reset_index(inplace=True, drop=True)
 
+    # Same operation, applied to the user uploaded data.
     year_dict = {i: None for i in range(current_year - 3, current_year + 1)}
     for year in year_dict.keys():
         this_year = curr["Z68_ORDER_NUMBER"].apply(lambda x: x[0:4] == str(year))
@@ -196,6 +250,11 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
     sorted_curr = pd.concat(list(year_dict.values()))
     sorted_curr.reset_index(inplace=True, drop=True)
 
+    # Find the start/end date of prev/curr data, decide which part to keep,
+    # which part to update, and which part to insert.
+    # OLD_RECORD: The data in CURRENT_DB that is before the oldest date in the USER_UPLOAD.
+    # COMMON_SECTION: The data that has the common date overlapped in the CURRENT_DB and USER_UPLOAD.
+    # NEW_SECTION: The data in USER_UPLOAD that is after the last day in CURRENT_DB.
     prev_start = sorted_prev[sorted_prev["order_number"] == sorted_curr.iloc[0]["Z68_ORDER_NUMBER"]]
     start_idx = prev_start.iloc[0].name
 
@@ -212,8 +271,43 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
     check_curr.insert(check_curr.shape[1], "id", "")
     check_curr.insert(check_curr.shape[1], "checked", False)
 
+    # temporarily store the data to be deleted here.
     to_del = check_prev.iloc[:0, :].copy()
 
+    # !!IMPORTANT!!
+    # The data in the NYC Table can be unreliable. Due to the design issue, there is no way to solidly
+    # secure a set of keys to make an order identifiable across orders reports while ensuring unique.
+    # Therefore, we create our own unique keys in the DB. The main reasons are:
+    # 1. One book could change its `name`, `BSN`, `barcode` and all `date`s in the new table.
+    # 2. One `order_number` could be associated with multiple books.
+    # 3. Books could mysteriously be duplicated/disappear between New York tables.
+    #
+    # !!KEEP IN MIND!!
+    # The only guarantee is that the sequence in the common section between prev/curr will remain the same.
+    #
+    # !!WHAT WE ARE DOING HERE!!
+    # In the next for-loop, We are matching the records ONLY in the COMMON SECTION.
+    #
+    # !!Matching Logic!!
+    # We loop through each record in the current database. Since the common section has the same sequence,
+    # If the two order at the same position has the same BSN and ORDER NUMBER,
+    # we consider them to be the same book. Then copy the id in the database to the record in the new df,
+    # and mark it has been matched.
+    #
+    # Else, we filter all the orders in the current table with same BSN and order number of the one in prev DB
+    #   If it does not exist anymore, we mark it as to be deleted.
+    #   And increase the number of the deleted rows.
+    #   With the data deleted, the rest of the section should match again.
+    #
+    #   If it exists, and only has one record, we copy the unique id in DB to the new record.
+    #   If it exists, and there are more than one record.
+    #       REMEMBER, this is in the common section, which means that the book is not newly added, (otherwise
+    #       it will go into the insertion section). It must mean somehow this record is duplicated.
+    #       In this case, we take the record that is located closely to the old record.
+    #       And ignore the other duplicated ones.
+    #
+    # In this way, we should have covered all the data in the common section.
+    # Please try not to change this logic unless the structure/content of The New York Table changes completely.
     deleted_rows = 0
     for idx, row in check_prev.iterrows():
         if (
@@ -246,6 +340,7 @@ def data_ingestion(db: Session, path: str = "utils/IDX_OUTPUT_NEW_REPORT.xlsx"):
 
     check_curr["id"] = check_curr["id"].astype(str)
 
+    # tidy up the data, prepare for deletion/insertion/update
     to_insert = check_curr[check_curr["checked"] == False]
     check_curr = check_curr[check_curr["checked"] == True]
     del check_curr["checked"]
