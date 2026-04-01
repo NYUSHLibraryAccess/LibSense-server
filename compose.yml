@@ -1,0 +1,13 @@
+services:
+  libsense:
+    container_name: libsense-backend
+    build: .
+    restart: always
+    network_mode: "host"
+    volumes:
+      - ./assets:/home/libsense/LibSense-server/assets
+      - ./logs:/home/libsense/LibSense-server/logs
+      - ./configs:/home/libsense/LibSense-server/configs
+    environment:
+      - ROOT_DIR=/home/libsense
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
